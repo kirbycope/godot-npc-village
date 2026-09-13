@@ -20,6 +20,12 @@
       "name": "date_and_time",
       "repo": "https://github.com/kirbycope/date-and-time.git",
       "ref": "main"
+    },
+    {
+      "name": "gut",
+      "repo": "https://github.com/bitwes/Gut.git",
+      "ref": "v9.6.1",
+      "_comment": "Test framework only. Pinned to a tag; never edited here, so it is never pushed back."
     }
   ]
 }

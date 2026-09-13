@@ -20,6 +20,13 @@
     "repo": "https://github.com/kirbycope/date-and-time.git",
     "subject": "ci: point the tests at the gutconfig where it now lives"
   },
+  "gut": {
+    "commit": "c80954f47bed74a0a2c471d472c0389f98e0a8f6",
+    "pulled": "2026-09-13T23:09:49Z",
+    "ref": "v9.6.1",
+    "repo": "https://github.com/bitwes/Gut.git",
+    "subject": "Version bump and documentation for 9.6.1 release (#848)"
+  },
   "weather_fx": {
     "commit": "322b54f383ac59b58b80f1cf19d9d37397452634",
     "pulled": "2026-09-13T22:23:26Z",

@@ -203,7 +203,9 @@ repositories, as listed in `tools/addons.json`:
 - [weather_fx](https://github.com/kirbycope/weather-fx)
 - [date_and_time](https://github.com/kirbycope/date-and-time)
 
-GUT 9.6.1 is vendored into `addons/gut` for the test suite.
+GUT is vendored the same way, pinned to `v9.6.1` in the manifest so the test framework
+cannot drift under the suite. It is third-party and never edited here, so it is never
+pushed back.
 
 If any of these are edited, run `python tools/push_addons.py -m "..."` before pushing this
 project, or the addon half of the work stays on the machine it was made on.

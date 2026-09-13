@@ -76,14 +76,22 @@ def main() -> int:
             continue
 
         if args.locked and name in lock:
-            target = lock[name]["commit"]
+            candidates = [lock[name]["commit"]]
         else:
-            target = f"origin/{addon['ref']}"
+            # A branch only resolves as origin/<ref>, while a tag or a commit resolves
+            # bare. Third-party addons are pinned to a tag so they cannot drift, so both
+            # spellings have to be tried.
+            candidates = [f"origin/{addon['ref']}", addon["ref"]]
 
-        try:
-            run(["git", "checkout", "--quiet", "--force", target], cwd=cache)
-        except RuntimeError as exc:
-            print(f"{name:<28} FAILED  cannot check out {target}: {exc}")
+        for index, target in enumerate(candidates):
+            try:
+                run(["git", "checkout", "--quiet", "--force", target], cwd=cache)
+                break
+            except RuntimeError as exc:
+                if index == len(candidates) - 1:
+                    print(f"{name:<28} FAILED  cannot check out {addon['ref']}: {exc}")
+                    target = None
+        if target is None:
             continue
 
         commit = run(["git", "rev-parse", "HEAD"], cwd=cache)

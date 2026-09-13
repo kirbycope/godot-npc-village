@@ -1,0 +1,30 @@
+{
+  "3d_player_controller": {
+    "commit": "4af8bc933df7d44b4eefc1fd78f3bdb3988250d1",
+    "pulled": "2026-09-13T22:23:17Z",
+    "ref": "main",
+    "repo": "https://github.com/kirbycope/godot-3d-player-controller-addon.git",
+    "subject": "Video settings: UI Scale and Controls options"
+  },
+  "controls": {
+    "commit": "e2a0835fbfd2c47f7d76e5ee395cda32cf40c019",
+    "pulled": "2026-09-13T22:23:19Z",
+    "ref": "main",
+    "repo": "https://github.com/kirbycope/godot-controls.git",
+    "subject": "README: the HUD keeps its size under a UI scale and is hidden with visible"
+  },
+  "date_and_time": {
+    "commit": "a7cf4a647029df53c7723a6d0571b3a03ddfce35",
+    "pulled": "2026-09-13T22:23:27Z",
+    "ref": "main",
+    "repo": "https://github.com/kirbycope/date-and-time.git",
+    "subject": "ci: point the tests at the gutconfig where it now lives"
+  },
+  "weather_fx": {
+    "commit": "322b54f383ac59b58b80f1cf19d9d37397452634",
+    "pulled": "2026-09-13T22:23:26Z",
+    "ref": "main",
+    "repo": "https://github.com/kirbycope/weather-fx.git",
+    "subject": "Show the clouds in the pink sky, with wind and leaves"
+  }
+}

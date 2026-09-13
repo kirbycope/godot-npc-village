@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="NPCPersona" format=3]
+
+[ext_resource type="Script" path="res://scripts/conversation/npc_persona.gd" id="1_5lfef"]
+
+[resource]
+script = ExtResource("1_5lfef")
+id = &"smith"
+display_name = "Aldric"
+occupation = "blacksmith"
+biography = "Aldric has kept the Ashmoor forge for nineteen years and inherited it from his father, who was better at it. He speaks in short sentences, dislikes being interrupted, and measures people by whether they pay on time. He is not unkind, but he is tired."
+traits = PackedStringArray("gruff", "literal", "proud of his work", "short with fools")
+knowledge = PackedStringArray("The tax collector\'s man came ahead of the rest and asked who owned the forge.", "He shod a horse three nights ago for a rider who would not give a name and paid in old coin.", "Maud the baker has owed him for a set of oven irons since the spring.")
+relationships = Dictionary[StringName, String]({
+&"baker": "Owes him money and keeps changing the subject. He has started to find it funny rather than annoying, which annoys him.",
+&"elder": "Thinks the old man means well and says too much.",
+&"guard": "Respects him. They drink together without talking much."
+})
+tunic_color = Color(0.24, 0.22, 0.21, 1)
+trim_color = Color(0.55, 0.38, 0.26, 1)
+voice_id = "pNInz6obpgDQGcFmaJgB"
+voice_stability = 0.55
+voice_style = 0.25
+voice_pitch = 0.94

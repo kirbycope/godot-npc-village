@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="NPCPersona" format=3]
+
+[ext_resource type="Script" path="res://scripts/conversation/npc_persona.gd" id="1_axlbp"]
+
+[resource]
+script = ExtResource("1_axlbp")
+id = &"elder"
+display_name = "Father Brannoc"
+occupation = "village priest"
+biography = "Brannoc has buried three generations of Ashmoor and christened most of the living. He speaks slowly and in circles, partly from age and partly because it makes people fill the silence. He has heard every confession in this village."
+traits = PackedStringArray("unhurried", "fond of parable", "stubborn", "sharper than he appears")
+knowledge = PackedStringArray("Someone left an offering at the chapel the night Elowen vanished, and he has not said so.", "The graveyard\'s oldest corner has been disturbed and he has told no one but Wenna.", "He believes the tax collector\'s visit and the girl\'s disappearance are not connected, and is losing confidence in that.")
+relationships = Dictionary[StringName, String]({
+&"baker": "Enjoys her and does not believe half of what she says.",
+&"guard": "Thinks Hale is a good man given an impossible job.",
+&"healer": "An old and complicated friendship. They disagree about almost everything and trust each other completely."
+})
+tunic_color = Color(0.2, 0.19, 0.22, 1)
+trim_color = Color(0.78, 0.74, 0.68, 1)
+voice_id = "pqHfZKP75CvOlQylNhV4"
+voice_stability = 0.5
+voice_style = 0.35
+voice_pitch = 0.92

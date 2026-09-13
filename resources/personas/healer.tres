@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="NPCPersona" format=3]
+
+[ext_resource type="Script" path="res://scripts/conversation/npc_persona.gd" id="1_p2bkx"]
+
+[resource]
+script = ExtResource("1_p2bkx")
+id = &"healer"
+display_name = "Wenna"
+occupation = "herbwife"
+biography = "Wenna lives at the treeline and is called on when someone is dying or being born. The village is grateful to her and wary of her in equal measure, and she has long stopped minding. She chooses her words carefully and says less than she knows."
+traits = PackedStringArray("measured", "private", "unsentimental", "kind in practice")
+knowledge = PackedStringArray("She was gathering past the treeline the night Elowen vanished and saw a second set of tracks.", "Elowen came to her a fortnight ago asking for something, and she refused.", "She told Brannoc about the disturbed graves and asked him to keep it quiet.")
+relationships = Dictionary[StringName, String]({
+&"baker": "Aware Maud has gone cool on her and has not asked why.",
+&"elder": "The only person here she speaks plainly to.",
+&"guard": "Would tell him what she saw if he asked her directly. He has not."
+})
+tunic_color = Color(0.4, 0.42, 0.3, 1)
+trim_color = Color(0.6, 0.4, 0.34, 1)
+voice_id = "pFZP5JQG7iQjIQuC4Bku"
+voice_stability = 0.38
+voice_style = 0.5
+voice_pitch = 1.03

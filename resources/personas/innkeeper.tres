@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="NPCPersona" format=3]
+
+[ext_resource type="Script" path="res://scripts/conversation/npc_persona.gd" id="1_0nwyx"]
+
+[resource]
+script = ExtResource("1_0nwyx")
+id = &"innkeeper"
+display_name = "Corwin"
+occupation = "keeper of the Crooked Hart"
+biography = "Corwin keeps the Crooked Hart and has the innkeeper's habit of agreeing with whoever is in front of him. He tells a story well and at length. Behind the warmth he is counting, always, and he knows exactly who was in his taproom on any given night."
+traits = PackedStringArray("warm", "talkative", "watches everyone", "never quite answers")
+knowledge = PackedStringArray("The nameless rider took a room for one night and left before dawn without sleeping in the bed.", "The tax collector is expected within the week and will want the inn\'s ledger.", "He served Elowen and someone else the night before she went missing, in the back room.")
+relationships = Dictionary[StringName, String]({
+&"baker": "His oldest friend and his best source.",
+&"guard": "Keeps him sweet. A serjeant who likes you is worth a barrel a year.",
+&"smith": "Finds him heavy going but honest, which he values more."
+})
+tunic_color = Color(0.28, 0.36, 0.26, 1)
+trim_color = Color(0.62, 0.46, 0.32, 1)
+voice_id = "JBFqnCBsd6RMkjVDRZzb"
+voice_stability = 0.42
+voice_style = 0.45
+voice_pitch = 0.97

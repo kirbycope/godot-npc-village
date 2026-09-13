@@ -1,0 +1,28 @@
+# Godot
+.godot/
+.import/
+export.cfg
+export_presets.cfg
+*.translation
+
+# Vendored addons are pulled with tools/pull_addons.py, not committed
+addons/
+.addon_cache/
+
+# Secrets
+.env
+secrets.cfg
+
+# macOS
+.DS_Store
+
+# Python
+__pycache__/
+*.pyc
+
+# Generated voice cache
+voice_cache/
+.mcp/
+
+# Godot MCP runtime scratch (screenshots, bridge state)
+.mcp/

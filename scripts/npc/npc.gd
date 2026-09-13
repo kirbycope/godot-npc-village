@@ -31,8 +31,31 @@ signal finished_speaking(npc: NPC)
 
 @export_group("Behaviour")
 
-## Name of the looping clip played underneath everything else.
-@export var idle_animation: StringName = &"idle/mixamo_com"
+## Looping clip played when the villager has nothing to say.
+##
+## Note the names have no `_Loop` suffix even though the source clips do. Godot's glTF
+## importer treats that suffix as an instruction, setting the animation to loop and
+## dropping it from the name, so `Idle_Loop` in the pack arrives as `Idle` here.
+@export var idle_animation: StringName = &"ual1/Idle"
+
+## Looping clip played while a line is being spoken. When the rig has this clip the
+## villager is animated by it and the procedural sway in [SpeakingModifier] is left
+## switched off, because two things driving the same bones fight each other. When it is
+## missing the procedural sway takes over, so a rig without a talking animation still
+## moves while it speaks.
+@export var talking_animation: StringName = &"ual1/Idle_Talking"
+
+## Seconds to cross-fade between the idle and talking loops.
+@export_range(0.0, 1.0, 0.05) var animation_blend: float = 0.25
+
+## Gestures from the dialogue schema mapped to one-shot clips. Only some gestures have a
+## clip in the animation library; anything left unmapped here is posed procedurally by
+## [SpeakingModifier] instead, so every gesture the model can ask for is expressed one
+## way or the other.
+@export var gesture_animations: Dictionary[StringName, StringName] = {
+	&"nod": &"ual2/Yes",
+	&"shake_head": &"ual2/Idle_No",
+}
 
 ## Degrees per second the villager turns to face whoever is speaking.
 @export_range(30.0, 720.0, 10.0) var turn_speed_degrees: float = 220.0
@@ -49,44 +72,67 @@ var _look_target: Node3D
 func _ready() -> void:
 	if persona != null and is_instance_valid(name_plate):
 		name_plate.text = persona.display_name
-	_dress()
+	_select_outfit_parts()
 	if is_instance_valid(subtitle):
 		subtitle.text = ""
 		subtitle.visible = false
-	if is_instance_valid(animation_player) and animation_player.has_animation(idle_animation):
-		animation_player.play(idle_animation)
+	_play_base_animation()
 	VoiceService.clip_ready.connect(_on_clip_ready)
 	VoiceService.clip_failed.connect(_on_clip_failed)
 	if is_instance_valid(voice_player):
 		voice_player.finished.connect(_on_voice_finished)
 
 
-## Recolours the model's two materials to this persona's clothing. Overrides are set
-## per surface on the instance, so every villager shares the one imported mesh and no
-## material resource is edited in place. Recolouring the resource would change every
-## villager at once, which is the opposite of what is wanted.
-func _dress() -> void:
+## Hides the parts of the outfit this villager is not wearing.
+##
+## The meshes are hidden rather than freed so the choice stays reversible at run time,
+## and because a hidden MeshInstance3D costs nothing to draw.
+func _select_outfit_parts() -> void:
 	if persona == null:
+		return
+	if persona.outfit_prefix.is_empty() and persona.hidden_parts.is_empty():
 		return
 	var meshes: Array[Node] = find_children("*", "MeshInstance3D", true, false)
 	for node: MeshInstance3D in meshes:
-		if node.mesh == null:
-			continue
-		for surface: int in node.mesh.get_surface_count():
-			var source: Material = node.get_active_material(surface)
-			if source is not StandardMaterial3D:
-				continue
-			var material: StandardMaterial3D = (source as StandardMaterial3D).duplicate()
-			# Surface 0 is the body, surface 1 the joints, as the mannequin is authored.
-			material.albedo_color = persona.tunic_color if surface == 0 else persona.trim_color
-			material.roughness = 0.85
-			material.metallic = 0.0
-			node.set_surface_override_material(surface, material)
+		var mesh_name: String = node.name
+		var wanted: bool = (
+			persona.outfit_prefix.is_empty()
+			or mesh_name.begins_with(persona.outfit_prefix)
+		)
+		if wanted:
+			for part: String in persona.hidden_parts:
+				if mesh_name.ends_with(part):
+					wanted = false
+					break
+		node.visible = wanted
 
 
 func _physics_process(delta: float) -> void:
 	_face_look_target(delta)
 	_drive_speaking_energy(delta)
+
+
+## Whether the rig has a real talking clip, which decides who animates the speaking:
+## the animation player or the procedural modifier.
+func _has_talking_animation() -> bool:
+	return (
+		is_instance_valid(animation_player)
+		and animation_player.has_animation(talking_animation)
+	)
+
+
+## Plays whichever loop matches the villager's current state.
+func _play_base_animation() -> void:
+	if not is_instance_valid(animation_player):
+		return
+	var wanted: StringName = idle_animation
+	if _speaking and _has_talking_animation():
+		wanted = talking_animation
+	if not animation_player.has_animation(wanted):
+		return
+	if animation_player.current_animation == String(wanted):
+		return
+	animation_player.play(wanted, animation_blend)
 
 
 ## The persona's id, or "" when none is assigned.
@@ -114,14 +160,35 @@ func speak(turn: ConversationTurn) -> void:
 	if is_instance_valid(subtitle):
 		subtitle.text = turn.line
 		subtitle.visible = true
-	if is_instance_valid(speaking_modifier):
-		speaking_modifier.play_gesture(turn.gesture)
+	_perform_gesture(turn.gesture)
 
+	_play_base_animation()
 	_current_handle = VoiceService.speak(turn.line, persona)
 	if _current_handle == 0:
 		# No voice available. The line still reads on screen, paced by its length, so
 		# a keyless build is a silent film rather than a broken one.
 		_finish_after(turn.estimated_duration())
+
+
+## Plays `gesture` as a one-shot clip when the library has one, and hands it to the
+## procedural modifier when it does not.
+func _perform_gesture(gesture: StringName) -> void:
+	if gesture == &"none":
+		return
+	var clip: StringName = gesture_animations.get(gesture, &"")
+	if (
+		clip != &""
+		and is_instance_valid(animation_player)
+		and animation_player.has_animation(clip)
+	):
+		animation_player.play(clip, animation_blend)
+		# Return to the speaking loop once the gesture has played out.
+		var length: float = animation_player.get_animation(clip).length
+		var timer: SceneTreeTimer = get_tree().create_timer(minf(length, 1.6))
+		timer.timeout.connect(_play_base_animation)
+		return
+	if is_instance_valid(speaking_modifier):
+		speaking_modifier.play_gesture(gesture)
 
 
 ## Cut the current line short. Safe to call when nothing is being said.
@@ -144,7 +211,12 @@ func _drive_speaking_energy(delta: float) -> void:
 	if not is_instance_valid(speaking_modifier):
 		return
 	var wanted: float = 0.0
-	if _speaking and is_instance_valid(voice_player) and voice_player.playing:
+	if (
+		_speaking
+		and not _has_talking_animation()
+		and is_instance_valid(voice_player)
+		and voice_player.playing
+	):
 		wanted = 1.0
 	speaking_modifier.energy = move_toward(
 		speaking_modifier.energy, wanted, delta * motion_damping
@@ -201,4 +273,5 @@ func _conclude() -> void:
 	if is_instance_valid(subtitle):
 		subtitle.visible = false
 		subtitle.text = ""
+	_play_base_animation()
 	finished_speaking.emit(self)

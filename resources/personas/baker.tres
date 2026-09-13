@@ -1,9 +1,10 @@
 [gd_resource type="Resource" script_class="NPCPersona" format=3]
 
-[ext_resource type="Script" path="res://scripts/conversation/npc_persona.gd" id="1_ier3f"]
+[ext_resource type="PackedScene" path="res://assets/quaternius/characters/Female_Peasant.gltf" id="1_oh0om"]
+[ext_resource type="Script" path="res://scripts/conversation/npc_persona.gd" id="2_4wyy5"]
 
 [resource]
-script = ExtResource("1_ier3f")
+script = ExtResource("2_4wyy5")
 id = &"baker"
 display_name = "Maud"
 occupation = "baker"
@@ -15,8 +16,11 @@ relationships = Dictionary[StringName, String]({
 &"innkeeper": "Her oldest friend. They trade gossip as currency.",
 &"smith": "Owes him and knows it. Likes him, which makes the debt worse."
 })
-tunic_color = Color(0.8, 0.76, 0.68, 1)
-trim_color = Color(0.72, 0.34, 0.3, 1)
+outfit = ExtResource("1_oh0om")
+outfit_prefix = "Female_Peasant"
+hidden_parts = PackedStringArray()
+feminine = true
+hair = PackedStringArray("Hair_Bob")
 voice_id = "Xb7hH8MSUJpSbSDYk0k2"
 voice_stability = 0.4
 voice_style = 0.4

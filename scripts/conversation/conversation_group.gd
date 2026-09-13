@@ -92,6 +92,12 @@ var _running: bool = false
 var _waiting_for_beat: bool = false
 var _cooldown_timer: Timer
 
+## What the player said that this group has not yet answered.
+var _player_line: String = ""
+
+## The villager the player was nearest to when they said it.
+var _addressed: StringName = &""
+
 
 func _ready() -> void:
 	_cooldown_timer = Timer.new()
@@ -168,7 +174,7 @@ func _restart_for_changed_situation() -> void:
 func _request_beat() -> void:
 	if _waiting_for_beat or npcs.size() < 2 or not _prefetched.is_empty():
 		return
-	if converse_only_when_player_present and not _player_present:
+	if converse_only_when_player_present and not _player_present and _player_line.is_empty():
 		return
 	var personas: Array[NPCPersona] = []
 	for npc: NPC in npcs:
@@ -180,6 +186,25 @@ func _request_beat() -> void:
 	ConversationDirector.request_beat(group_id, personas, _situation(), _transcript)
 
 
+## The player spoke aloud near `addressed`, who belongs to this group.
+##
+## The line joins the transcript as a turn like any other, so the villagers remember it
+## and can refer back to it later in the conversation. Whatever they were saying is cut
+## off: being talked to is exactly the kind of change that makes the rest of a planned
+## beat wrong, and a villager who finishes their sentence before acknowledging you reads
+## as deaf rather than as busy.
+func hear_player(line: String, addressed: NPC) -> void:
+	var spoken: String = line.strip_edges()
+	if spoken.is_empty():
+		return
+	_transcript.append(ConversationTurn.new(&"player", spoken))
+	_player_line = spoken
+	_addressed = addressed.persona_id() if is_instance_valid(addressed) else &""
+	interrupt()
+	_cooldown_timer.stop()
+	_cooldown_timer.start(0.15)
+
+
 ## What the director needs to know about this moment. Time and weather are read from
 ## the addons when they are present, so the villagers comment on real conditions.
 func _situation() -> Dictionary:
@@ -188,13 +213,69 @@ func _situation() -> Dictionary:
 		"player_present": _player_present,
 		"topic": topic,
 	}
-	var clock: Node = get_node_or_null("/root/DateAndTime")
-	if clock != null and clock.has_method("get_time_of_day_name"):
-		situation["time_of_day"] = clock.call("get_time_of_day_name")
-	var weather: Node = get_node_or_null("/root/WeatherFX")
-	if weather != null and weather.has_method("get_weather_name"):
-		situation["weather"] = weather.call("get_weather_name")
+	if not _player_line.is_empty():
+		situation["player_line"] = _player_line
+		var speaker: NPC = _find_npc(_addressed)
+		if speaker != null and speaker.persona != null:
+			situation["addressed"] = speaker.persona.display_name
+		# Consumed here: the next beat after this one is ordinary conversation again.
+		_player_line = ""
+		_addressed = &""
+	var clock: Node = get_tree().get_first_node_in_group("date_and_time")
+	if clock != null and clock.has_method("get_hour"):
+		situation["time_of_day"] = _describe_hour(int(clock.call("get_hour")))
+	var weather: Node = get_tree().get_first_node_in_group("weather_fx")
+	if weather != null:
+		var kind: Variant = weather.get("current_weather")
+		if kind != null:
+			situation["weather"] = _describe_weather(int(kind))
+	if weather != null:
+		var temperature: Variant = weather.get("current_temperature")
+		if temperature != null:
+			situation["temperature"] = "%d degrees" % int(temperature)
 	return situation
+
+
+## Turns a clock hour into the words a villager would actually use. Nobody in a medieval
+## village says "fourteen hundred hours", and the dialogue model writes better lines from
+## "mid-afternoon" than from a number.
+func _describe_hour(hour: int) -> String:
+	if hour < 5:
+		return "the small hours, long before dawn"
+	if hour < 7:
+		return "first light"
+	if hour < 11:
+		return "morning"
+	if hour < 13:
+		return "midday"
+	if hour < 16:
+		return "mid-afternoon"
+	if hour < 19:
+		return "late afternoon, the light going"
+	if hour < 21:
+		return "dusk"
+	return "after dark"
+
+
+## The WeatherFX weather enum in words. Kept as a local table rather than calling the
+## addon's own helper so a project without WeatherFX still compiles.
+func _describe_weather(kind: int) -> String:
+	match kind:
+		0:
+			return "clear skies"
+		1:
+			return "overcast"
+		2:
+			return "raining"
+		3:
+			return "heavy rain"
+		4:
+			return "a thunderstorm"
+		5:
+			return "snowing"
+		6:
+			return "heavy snow"
+	return "unsettled"
 
 
 func _on_beat_ready(group_id_in: StringName, turns: Array[ConversationTurn]) -> void:

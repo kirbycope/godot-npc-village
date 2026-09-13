@@ -121,7 +121,7 @@ scripts/
     npc_persona.gd             Who a villager is, and how they sound
   npc/
     npc.gd                     A villager: performs a turn, reports when it is done
-    speaking_modifier.gd       SkeletonModifier3D that poses the body while speaking
+    speaking_modifier.gd       Poses gestures the animation library has no clip for
   services/
     secrets.gd                 Key resolution, autoloaded as Secrets
     voice_service.gd           ElevenLabs client and clip cache, autoloaded as VoiceService
@@ -130,7 +130,9 @@ scripts/
     subtitle_hud.gd            Screen-space subtitles
 tools/
   build_personas.gd            Generates resources/personas/*.tres
-  build_world.gd               Generates scenes/npc.tscn and scenes/world.tscn
+  build_world.gd               Generates scenes/villagers/*.tscn and scenes/world.tscn
+  inventory_assets.py          Surveys an asset library before anything is imported
+  tinyify.py                   Downsizes and compresses textures to the 512 limit
   pull_addons.py               Vendors the addons listed in tools/addons.json
 ```
 
@@ -150,15 +152,31 @@ requesting the next beat two turns early hides it entirely.
 or leaves, the rest of that guess is wrong, so the group drops it and asks again with the
 new situation.
 
-**The speaking motion is procedural.** There is no talking animation in the vendored set,
-but that is not the only reason. A canned talking loop mimes for a fixed length against
-lines whose length nobody knows in advance. `SpeakingModifier` poses the head and chest
-against the clip that is actually playing, so a villager moves for exactly as long as they
-are speaking, whatever the model invented. Gestures (nod, shrug, lean in, turn away) are
-posed the same way and blend out of whatever the body was already doing.
+**Animation is clips first, procedural second.** The villagers play Quaternius's Universal
+Animation Library: `Idle_Loop` when they have nothing to say, `Idle_Talking_Loop` while
+they speak, and `Yes` / `Idle_No_Loop` for a nod and a shake of the head.
 
-It has to be a `SkeletonModifier3D`. The skeleton applies its animation every frame, and
-anything writing bone poses before that is simply overwritten.
+Not every gesture the dialogue model can ask for has a clip. `shrug`, `lean_in`,
+`turn_away`, `point` and `laugh` do not, so those are posed procedurally by
+`SpeakingModifier` on the humanoid bones instead. The two never run at once: the NPC
+checks whether a real talking clip exists and, if it does, leaves the procedural sway
+switched off, because two things driving the same bones fight each other. A rig without a
+talking animation falls back to the procedural path and still moves while it speaks.
+
+The procedural half has to be a `SkeletonModifier3D`. The skeleton applies its animation
+every frame, and anything writing bone poses before that is simply overwritten.
+
+**One rig, no retargeting.** The fantasy outfits and the animation library are modelled on
+the same 65-joint skeleton, so any villager plays any of the 262 clips directly. That is an
+assumption about two third-party packs rather than something the engine guarantees, so
+`test_villager_rig.gd` asserts it: every outfit must carry every bone the animations drive,
+and the clips the code names must exist. If a pack update ever broke it, the villagers
+would go still and nothing else would say why.
+
+**Each villager is their own scene.** `scenes/villagers/*.tscn` is generated per persona,
+because the body is part of who someone is. An earlier version tinted one grey mannequin
+six ways, which told you nothing across a square. Now the priest is in robes and the
+serjeant in a gambeson, and you can tell them apart before either has spoken.
 
 **Subtitles are screen-space.** They were first tried as a `Label3D` over each villager's
 head, which cannot work: a world-space label is sized in metres, so it is unreadable across
@@ -167,13 +185,12 @@ genuinely should shrink with distance.
 
 ## Known gaps
 
-- The villagers are recoloured Quaternius mannequins rather than clothed medieval
-  characters. Quaternius's Medieval Village MegaKit and fantasy character outfits are CC0
-  and would be a straight upgrade, but itch.io gates downloads behind a click-through that
-  cannot be scripted. Drop them into `assets/quaternius/` and repoint `build_world.gd`.
-- There are no conversational animations in the vendored Mixamo set (no talking, nodding or
-  shrugging clips), which is why gestures are procedural. Mixamo has free ones behind an
-  Adobe login.
+- Five of the eight gestures (`shrug`, `lean_in`, `turn_away`, `point`, `laugh`) have no
+  clip in the animation library and are posed procedurally. They read acceptably but a real
+  clip would be better.
+- The village buildings are still the Kenney Fantasy Town Kit. Quaternius's Medieval
+  Village MegaKit is in the staging area and is denser and better matched to the villagers;
+  swapping it in means re-measuring the module grid in `build_world.gd`.
 - The API keys live in the client. That is fine for a local project and wrong for anything
   shipped, where the requests should go through a relay that holds the keys server-side.
 
@@ -183,15 +200,20 @@ All assets are CC0 or MIT and are attributed below.
 
 | Asset | Source | License |
 | --- | --- | --- |
-| Fantasy Town Kit 2.0 | <https://kenney.nl/assets/fantasy-town-kit> | CC0 1.0 |
-| Graveyard Kit 5.0 | <https://kenney.nl/assets/graveyard-kit> | CC0 1.0 |
-| Mini Forest 1.0 | <https://kenney.nl/assets/mini-forest> | CC0 1.0 |
-| Nature Kit | <https://kenney.nl/assets/nature-kit> | CC0 1.0 |
-| Mannequin characters | <https://quaternius.com> | CC0 1.0 |
-| Mixamo idle animation | <https://www.mixamo.com> | Mixamo license, via the player controller addon |
+| Medieval Village MegaKit | <https://quaternius.com> | CC0 1.0 |
+| Stylized Nature MegaKit | <https://quaternius.com> | CC0 1.0, via the WeatherFX addon |
+| Universal Base Characters | <https://quaternius.com> | CC0 1.0 |
+| Modular Character Outfits: Fantasy | <https://quaternius.com> | CC0 1.0 |
+| Universal Animation Library 1 and 2 | <https://quaternius.com> | CC0 1.0 |
 
-The Kenney kits are in `assets/kenney/`, each with the `License.txt` from its download. The
-mannequins and the idle animation come from the `3d_player_controller` addon.
+The Kenney kits are in `assets/kenney/` and the Quaternius packs in `assets/quaternius/`,
+each with the `License.txt` from its download.
+
+Only six outfits and the two animation libraries are committed, not the whole packs. The
+source textures are 4096 square and run to 180 MB; `tools/tinyify.py` downsizes them to the
+512 limit these projects import at, which brings the same 25 textures to about 3 MB with no
+visible difference at the size a villager occupies on screen. `tools/inventory_assets.py`
+is what picks which packs are worth taking in the first place.
 
 ## Addons
 

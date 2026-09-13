@@ -42,6 +42,21 @@ const OUTPUT_FORMAT: String = "mp3_44100_128"
 
 const CACHE_DIR: String = "user://voice_cache"
 
+## Clips committed to the repository. Checked before the writable cache and before any
+## request, so a build with no key and no network still has a voice for every line that
+## has been baked. `tools/bake_voice_bank.gd` promotes clips from the writable cache into
+## here, and writes the manifest alongside them.
+const BANK_DIR: String = "res://assets/voice"
+
+## Maps a clip hash to what it says, who says it, and how long it runs. Without this a
+## bank of hash-named files is unreadable: nothing on disk records that
+## `0357022e...mp3` is Maud saying "Bread for two, that morning".
+const BANK_MANIFEST: String = "res://assets/voice/manifest.json"
+
+## The same index for the writable cache, so clips can be promoted into the bank later
+## with their text intact.
+const CACHE_INDEX: String = "user://voice_cache/index.json"
+
 ## Requests allowed in flight at once. Villagers speak one at a time per group, so
 ## this only matters when several groups talk across the village together.
 const MAX_CONCURRENT: int = 4
@@ -59,6 +74,17 @@ const TIMEOUT_SECONDS: float = 20.0
 ## Set false to silence the villagers without removing the key.
 @export var enabled: bool = true
 
+## Where the committed bank can be fetched from when it is not packed into the build.
+##
+## This is what makes a web export work without an API key. The clips are ordinary files
+## in the repository, so raw.githubusercontent.com serves them directly; the export can
+## then leave the audio out of the `.pck` and stay small, and the page pulls each clip
+## the first time it is needed and keeps it in `user://`, which is browser storage. Set
+## it to "" to disable remote fetching entirely.
+@export var remote_bank_base_url: String = (
+	"https://raw.githubusercontent.com/kirbycope/godot-npc-village/main/assets/voice"
+)
+
 var _characters_used: int = 0
 var _quota_used: int = 0
 var _quota_limit: int = 0
@@ -68,9 +94,17 @@ var _active: int = 0
 var _queue: Array[Dictionary] = []
 var _available: bool = false
 
+## Hashes present in the committed bank, from its manifest.
+var _bank: Dictionary = {}
+
+## What the writable cache holds, keyed by hash. Written out whenever it grows.
+var _index: Dictionary = {}
+
 
 func _ready() -> void:
 	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(CACHE_DIR))
+	_load_bank()
+	_load_index()
 	if RuntimeMode.is_offline():
 		# A test run reads clips from the fixtures and never synthesizes, so no request
 		# is made and no characters are spent against the account.
@@ -110,13 +144,25 @@ func speak(text: String, persona: NPCPersona) -> int:
 	_next_handle += 1
 	var key: String = _cache_key(line, persona)
 
-	# The cache is consulted before anything else, including whether the service is
-	# available at all. A clip already on disk costs nothing to play and needs no key,
-	# no quota and no network, so a keyless build, an offline session and a test run can
-	# all still hear every line that has been heard before.
+	# Committed clips first, then the writable cache, before anything else and before
+	# any question of whether the service is available. A clip already on disk costs
+	# nothing to play and needs no key, no quota and no network, so a keyless build, an
+	# offline session and a test run can all still hear every line that has been baked.
+	var banked: AudioStream = _read_bank(key)
+	if banked != null:
+		clip_ready.emit.call_deferred(handle, banked, true)
+		return handle
+
 	var cached: AudioStream = _read_cache(key)
 	if cached != null:
 		clip_ready.emit.call_deferred(handle, cached, true)
+		return handle
+
+	# The manifest is small and ships with every build, so it can be consulted even when
+	# the audio itself was left out of the export. A hit here means the clip exists in
+	# the repository and can be downloaded rather than synthesized.
+	if _bank.has(key) and not remote_bank_base_url.is_empty():
+		_fetch_remote(key, handle)
 		return handle
 
 	if not enabled or not _available:
@@ -216,6 +262,7 @@ func _on_clip_completed(
 		return
 
 	_write_cache(str(job["key"]), body)
+	_record(str(job["key"]), job, body.size(), stream.get_length())
 	clip_ready.emit(handle, stream, false)
 	_pump()
 
@@ -256,17 +303,7 @@ func _cache_path(key: String) -> String:
 
 
 func _read_cache(key: String) -> AudioStream:
-	var path: String = _cache_path(key)
-	if not FileAccess.file_exists(path):
-		return null
-	var file: FileAccess = FileAccess.open(path, FileAccess.READ)
-	if file == null:
-		return null
-	var bytes: PackedByteArray = file.get_buffer(file.get_length())
-	file.close()
-	if bytes.is_empty():
-		return null
-	return AudioStreamMP3.load_from_buffer(bytes)
+	return _read_mp3(_cache_path(key))
 
 
 func _write_cache(key: String, bytes: PackedByteArray) -> void:
@@ -316,3 +353,116 @@ func _on_quota_completed(
 		_tier, _quota_used, _quota_limit,
 	])
 	quota_updated.emit(_quota_used, _quota_limit, _tier)
+
+
+# --------------------------------------------------------------------------------
+# The committed bank
+# --------------------------------------------------------------------------------
+
+## Reads the manifest of clips committed to the repository.
+func _load_bank() -> void:
+	if not FileAccess.file_exists(BANK_MANIFEST):
+		return
+	var file: FileAccess = FileAccess.open(BANK_MANIFEST, FileAccess.READ)
+	if file == null:
+		return
+	var reader: JSON = JSON.new()
+	var text: String = file.get_as_text()
+	file.close()
+	if reader.parse(text) != OK or typeof(reader.data) != TYPE_DICTIONARY:
+		push_warning("[VoiceService] The voice bank manifest could not be read.")
+		return
+	var data: Dictionary = reader.data
+	_bank = data.get("clips", {})
+	print("[VoiceService] Voice bank: %d committed clips." % _bank.size())
+
+
+## A clip from the committed bank, or null when it holds none for this key.
+func _read_bank(key: String) -> AudioStream:
+	if _bank.is_empty():
+		return null
+	if not _bank.has(key):
+		return null
+	return _read_mp3("%s/%s.mp3" % [BANK_DIR, key])
+
+
+func _load_index() -> void:
+	if not FileAccess.file_exists(CACHE_INDEX):
+		return
+	var file: FileAccess = FileAccess.open(CACHE_INDEX, FileAccess.READ)
+	if file == null:
+		return
+	var reader: JSON = JSON.new()
+	var text: String = file.get_as_text()
+	file.close()
+	if reader.parse(text) == OK and typeof(reader.data) == TYPE_DICTIONARY:
+		_index = reader.data
+
+
+## Notes what a freshly synthesized clip says, so it can be promoted into the bank with
+## its text rather than as an anonymous hash.
+func _record(key: String, job: Dictionary, bytes: int, seconds: float) -> void:
+	var persona: NPCPersona = job["persona"]
+	_index[key] = {
+		"text": job["text"],
+		"persona": String(persona.id),
+		"speaker": persona.display_name,
+		"voice_id": persona.voice_id,
+		"model_id": MODEL_ID,
+		"bytes": bytes,
+		"seconds": snappedf(seconds, 0.01),
+	}
+	var file: FileAccess = FileAccess.open(CACHE_INDEX, FileAccess.WRITE)
+	if file == null:
+		return
+	file.store_string(JSON.stringify(_index, "\t", true))
+	file.close()
+
+
+## Decodes an mp3 from `path`, or null if it is missing or unreadable.
+func _read_mp3(path: String) -> AudioStream:
+	if not FileAccess.file_exists(path):
+		return null
+	var file: FileAccess = FileAccess.open(path, FileAccess.READ)
+	if file == null:
+		return null
+	var bytes: PackedByteArray = file.get_buffer(file.get_length())
+	file.close()
+	if bytes.is_empty():
+		return null
+	return AudioStreamMP3.load_from_buffer(bytes)
+
+
+## Downloads a banked clip and caches it, so it is paid for once per player rather than
+## once per hearing. A failure here is not fatal: the line still reads as a subtitle.
+func _fetch_remote(key: String, handle: int) -> void:
+	var request: HTTPRequest = HTTPRequest.new()
+	request.timeout = TIMEOUT_SECONDS
+	add_child(request)
+	request.request_completed.connect(_on_remote_completed.bind(request, key, handle))
+	var url: String = "%s/%s.mp3" % [remote_bank_base_url.rstrip("/"), key]
+	if request.request(url) != OK:
+		request.queue_free()
+		clip_failed.emit.call_deferred(handle, "could not start the bank download")
+
+
+func _on_remote_completed(
+	result: int,
+	response_code: int,
+	_headers: PackedStringArray,
+	body: PackedByteArray,
+	request: HTTPRequest,
+	key: String,
+	handle: int,
+) -> void:
+	if is_instance_valid(request):
+		request.queue_free()
+	if result != HTTPRequest.RESULT_SUCCESS or response_code != 200:
+		clip_failed.emit(handle, "bank download failed (HTTP %d)" % response_code)
+		return
+	var stream: AudioStreamMP3 = AudioStreamMP3.load_from_buffer(body)
+	if stream == null:
+		clip_failed.emit(handle, "the downloaded clip was not decodable audio")
+		return
+	_write_cache(key, body)
+	clip_ready.emit(handle, stream, true)

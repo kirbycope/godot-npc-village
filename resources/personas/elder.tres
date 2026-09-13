@@ -1,9 +1,10 @@
 [gd_resource type="Resource" script_class="NPCPersona" format=3]
 
-[ext_resource type="Script" path="res://scripts/conversation/npc_persona.gd" id="1_axlbp"]
+[ext_resource type="PackedScene" path="res://assets/quaternius/characters/Male_Wizard.gltf" id="1_ohsr4"]
+[ext_resource type="Script" path="res://scripts/conversation/npc_persona.gd" id="2_cosct"]
 
 [resource]
-script = ExtResource("1_axlbp")
+script = ExtResource("2_cosct")
 id = &"elder"
 display_name = "Father Brannoc"
 occupation = "village priest"
@@ -15,8 +16,10 @@ relationships = Dictionary[StringName, String]({
 &"guard": "Thinks Hale is a good man given an impossible job.",
 &"healer": "An old and complicated friendship. They disagree about almost everything and trust each other completely."
 })
-tunic_color = Color(0.2, 0.19, 0.22, 1)
-trim_color = Color(0.78, 0.74, 0.68, 1)
+outfit = ExtResource("1_ohsr4")
+outfit_prefix = "Male_Wizard"
+hidden_parts = PackedStringArray()
+hair = PackedStringArray("Hair_Balding", "Hair_Beard")
 voice_id = "pqHfZKP75CvOlQylNhV4"
 voice_stability = 0.5
 voice_style = 0.35

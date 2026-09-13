@@ -15,13 +15,20 @@ extends SceneTree
 
 const OUTPUT_DIR: String = "res://resources/personas"
 
-## id, name, occupation, voice, pitch, stability, style, traits, biography, knowledge,
-## relationships.
+## id, outfit, name, occupation, voice, pitch, stability, style, traits, biography,
+## knowledge, relationships.
+##
+## The outfits are cast to read at a distance. A player crossing the square should be
+## able to tell the priest from the serjeant before either has said a word.
 const CAST: Array[Dictionary] = [
 	{
 		"id": &"smith",
-		"tunic": Color(0.24, 0.22, 0.21),
-		"trim": Color(0.55, 0.38, 0.26),
+		# a working man's tunic, the plainest thing in the village
+		"outfit": "Male_Peasant",
+		"prefix": "Male_Peasant",
+		"hidden": [],
+		"feminine": false,
+		"hair": ["Hair_Buzzed", "Hair_Beard"],
 		"name": "Aldric",
 		"occupation": "blacksmith",
 		"voice": "pNInz6obpgDQGcFmaJgB",
@@ -43,8 +50,12 @@ const CAST: Array[Dictionary] = [
 	},
 	{
 		"id": &"baker",
-		"tunic": Color(0.80, 0.76, 0.68),
-		"trim": Color(0.72, 0.34, 0.30),
+		# the same peasant cloth, which is the point: she is one of them
+		"outfit": "Female_Peasant",
+		"prefix": "Female_Peasant",
+		"hidden": [],
+		"feminine": true,
+		"hair": ["Hair_Bob"],
 		"name": "Maud",
 		"occupation": "baker",
 		"voice": "Xb7hH8MSUJpSbSDYk0k2",
@@ -66,8 +77,12 @@ const CAST: Array[Dictionary] = [
 	},
 	{
 		"id": &"innkeeper",
-		"tunic": Color(0.28, 0.36, 0.26),
-		"trim": Color(0.62, 0.46, 0.32),
+		# better dressed than anyone else here, and enjoying it
+		"outfit": "Male_Noble",
+		"prefix": "Male_Noble",
+		"hidden": ["Head_Crown", "Acc_Pauldron_Lion", "Acc_Gorget"],
+		"feminine": false,
+		"hair": ["Hair_SlickBack", "Hair_Moustache"],
 		"name": "Corwin",
 		"occupation": "keeper of the Crooked Hart",
 		"voice": "JBFqnCBsd6RMkjVDRZzb",
@@ -89,8 +104,12 @@ const CAST: Array[Dictionary] = [
 	},
 	{
 		"id": &"guard",
-		"tunic": Color(0.33, 0.38, 0.45),
-		"trim": Color(0.35, 0.27, 0.22),
+		# a serjeant's gambeson rather than full plate
+		"outfit": "Male_Knight_Cloth",
+		"prefix": "Male_Knight",
+		"hidden": ["Head_Horns", "Acc_Pauldron_Spike"],
+		"feminine": false,
+		"hair": ["Hair_Buzzed"],
 		"name": "Serjeant Hale",
 		"occupation": "village serjeant",
 		"voice": "onwK4e9ZLuTAKqWW03F9",
@@ -112,8 +131,12 @@ const CAST: Array[Dictionary] = [
 	},
 	{
 		"id": &"elder",
-		"tunic": Color(0.20, 0.19, 0.22),
-		"trim": Color(0.78, 0.74, 0.68),
+		# robes, which read as a priest's at this distance
+		"outfit": "Male_Wizard",
+		"prefix": "Male_Wizard",
+		"hidden": [],
+		"feminine": false,
+		"hair": ["Hair_Balding", "Hair_Beard"],
 		"name": "Father Brannoc",
 		"occupation": "village priest",
 		"voice": "pqHfZKP75CvOlQylNhV4",
@@ -135,8 +158,12 @@ const CAST: Array[Dictionary] = [
 	},
 	{
 		"id": &"healer",
-		"tunic": Color(0.40, 0.42, 0.30),
-		"trim": Color(0.60, 0.40, 0.34),
+		# hooded and practical, for someone who lives at the treeline
+		"outfit": "Female_Ranger",
+		"prefix": "Female_Ranger",
+		"hidden": [],
+		"feminine": true,
+		"hair": ["Hair_Long"],
 		"name": "Wenna",
 		"occupation": "herbwife",
 		"voice": "pFZP5JQG7iQjIQuC4Bku",
@@ -173,8 +200,21 @@ func _init() -> void:
 		persona.voice_stability = entry["stability"]
 		persona.voice_style = entry["style"]
 		persona.voice_similarity = 0.8
-		persona.tunic_color = entry["tunic"]
-		persona.trim_color = entry["trim"]
+		var outfit_path: String = "res://assets/quaternius/characters/%s.gltf" % entry["outfit"]
+		var outfit: PackedScene = load(outfit_path)
+		if outfit == null:
+			printerr("Missing outfit for %s: %s" % [entry["id"], outfit_path])
+		persona.outfit = outfit
+		persona.outfit_prefix = entry["prefix"]
+		var hidden: PackedStringArray = PackedStringArray()
+		for part: String in entry["hidden"]:
+			hidden.append(part)
+		persona.hidden_parts = hidden
+		persona.feminine = entry["feminine"]
+		var hair: PackedStringArray = PackedStringArray()
+		for style: String in entry["hair"]:
+			hair.append(style)
+		persona.hair = hair
 
 		var traits: PackedStringArray = PackedStringArray()
 		for item: String in entry["traits"]:

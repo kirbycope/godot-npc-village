@@ -1,9 +1,10 @@
 [gd_resource type="Resource" script_class="NPCPersona" format=3]
 
-[ext_resource type="Script" path="res://scripts/conversation/npc_persona.gd" id="1_ljkey"]
+[ext_resource type="PackedScene" path="res://assets/quaternius/characters/Male_Knight_Cloth.gltf" id="1_54pce"]
+[ext_resource type="Script" path="res://scripts/conversation/npc_persona.gd" id="2_k28g4"]
 
 [resource]
-script = ExtResource("1_ljkey")
+script = ExtResource("2_k28g4")
 id = &"guard"
 display_name = "Serjeant Hale"
 occupation = "village serjeant"
@@ -15,8 +16,10 @@ relationships = Dictionary[StringName, String]({
 &"innkeeper": "Knows Corwin is managing him and lets it happen.",
 &"smith": "A friend, in the way of men who stand near each other in silence."
 })
-tunic_color = Color(0.33, 0.38, 0.45, 1)
-trim_color = Color(0.35, 0.27, 0.22, 1)
+outfit = ExtResource("1_54pce")
+outfit_prefix = "Male_Knight"
+hidden_parts = PackedStringArray("Head_Horns", "Acc_Pauldron_Spike")
+hair = PackedStringArray("Hair_Buzzed")
 voice_id = "onwK4e9ZLuTAKqWW03F9"
 voice_stability = 0.6
 voice_style = 0.2

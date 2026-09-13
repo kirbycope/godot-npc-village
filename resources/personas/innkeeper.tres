@@ -1,9 +1,10 @@
 [gd_resource type="Resource" script_class="NPCPersona" format=3]
 
-[ext_resource type="Script" path="res://scripts/conversation/npc_persona.gd" id="1_0nwyx"]
+[ext_resource type="PackedScene" path="res://assets/quaternius/characters/Male_Noble.gltf" id="1_w3s17"]
+[ext_resource type="Script" path="res://scripts/conversation/npc_persona.gd" id="2_66dq7"]
 
 [resource]
-script = ExtResource("1_0nwyx")
+script = ExtResource("2_66dq7")
 id = &"innkeeper"
 display_name = "Corwin"
 occupation = "keeper of the Crooked Hart"
@@ -15,8 +16,10 @@ relationships = Dictionary[StringName, String]({
 &"guard": "Keeps him sweet. A serjeant who likes you is worth a barrel a year.",
 &"smith": "Finds him heavy going but honest, which he values more."
 })
-tunic_color = Color(0.28, 0.36, 0.26, 1)
-trim_color = Color(0.62, 0.46, 0.32, 1)
+outfit = ExtResource("1_w3s17")
+outfit_prefix = "Male_Noble"
+hidden_parts = PackedStringArray("Head_Crown", "Acc_Pauldron_Lion", "Acc_Gorget")
+hair = PackedStringArray("Hair_SlickBack", "Hair_Moustache")
 voice_id = "JBFqnCBsd6RMkjVDRZzb"
 voice_stability = 0.42
 voice_style = 0.45

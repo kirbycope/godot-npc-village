@@ -57,8 +57,9 @@ const HISTORY_LIMIT: int = 12
 ## The village bible. Stable across every request so it caches; anything that varies
 ## belongs in the user message instead.
 const VILLAGE_LORE: String = """You write dialogue for villagers in Ashmoor, a small medieval village \
-built where the mill road crosses the river. It has a market square with a fountain, a smithy, a \
-bakery, a tavern called the Crooked Hart, a watermill, and a chapel with a graveyard behind it. The \
+built where the mill road crosses the river. It has a market square where the carts \
+unload, a smithy, a bakery, a tavern called the Crooked Hart, a barn, and a chapel with a \
+graveyard behind it. The \
 lord's tax collector is expected before the harvest. The miller's youngest daughter has not been \
 seen for six days.
 
@@ -78,7 +79,19 @@ Rules:
 - Avoid modern idiom, but do not write in mock-archaic English either.
 - If the player is standing with them, they may acknowledge the player or pointedly \
 not acknowledge them, as their character would.
-- A beat is 3 to 6 turns. End it somewhere that could be picked up again."""
+- A beat is 3 to 6 turns. End it somewhere that could be picked up again.
+
+When the player has just spoken aloud, the beat is a reply to them:
+- The villager they addressed answers first, in character. That villager may refuse to \
+answer, answer badly, or answer something they were not asked, as they would.
+- Other villagers standing there join in only if they have something of their own to \
+say: to contradict, to add what they know, to change the subject, or to tell the first \
+one to be quiet. A villager with nothing to add stays out of it, and a beat where only \
+one of them speaks is a perfectly good beat.
+- Nobody repeats the player's words back at them, and nobody narrates that the player \
+has spoken.
+- The villagers only know what they would plausibly have heard. They do not suddenly \
+understand something the player has not told them."""
 
 ## The shape every beat must come back in. `strict` schema, so the response is
 ## guaranteed to parse and the game never has to defend against prose.
@@ -261,7 +274,20 @@ func _describe_situation(situation: Dictionary) -> String:
 		lines.append("When: %s" % situation["time_of_day"])
 	if situation.has("weather"):
 		lines.append("Weather: %s" % situation["weather"])
-	if situation.get("player_present", false):
+	if situation.has("temperature"):
+		lines.append("Temperature: %s" % situation["temperature"])
+	if situation.has("player_line") and not str(situation["player_line"]).is_empty():
+		# What the player actually said out loud, transcribed from their microphone.
+		lines.append("")
+		lines.append("The player has just spoken aloud, and everyone here heard it:")
+		lines.append("    \"%s\"" % str(situation["player_line"]))
+		if situation.has("addressed") and not str(situation["addressed"]).is_empty():
+			lines.append(
+				"They were looking at %s, who is nearest. %s answers first."
+				% [situation["addressed"], situation["addressed"]]
+			)
+		lines.append("Write the villagers' reply.")
+	elif situation.get("player_present", false):
 		lines.append("The player is standing close enough to hear every word.")
 	else:
 		lines.append("The player is not within earshot.")

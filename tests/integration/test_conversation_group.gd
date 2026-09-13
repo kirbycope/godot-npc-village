@@ -12,7 +12,9 @@ extends GutTest
 ## or offline build has to keep the conversation moving rather than deadlock on a clip
 ## that never arrives.
 
-const NPC_SCENE: String = "res://scenes/npc.tscn"
+## One scene per villager now, because the body is part of the persona rather than a
+## shared mannequin recoloured at run time.
+const VILLAGER_SCENE: String = "res://scenes/villagers/%s.tscn"
 
 var _group: ConversationGroup
 var _smith: NPC
@@ -43,11 +45,10 @@ func before_each() -> void:
 
 
 func _make_npc(persona_id: String) -> NPC:
-	var scene: PackedScene = load(NPC_SCENE)
-	assert_not_null(scene, "the villager scene should exist")
+	var scene: PackedScene = load(VILLAGER_SCENE % persona_id)
+	assert_not_null(scene, "the %s villager scene should exist" % persona_id)
 	var npc: NPC = scene.instantiate()
-	npc.persona = load("res://resources/personas/%s.tres" % persona_id)
-	assert_not_null(npc.persona, "the %s persona should exist" % persona_id)
+	assert_not_null(npc.persona, "the %s villager should carry its persona" % persona_id)
 	return npc
 
 

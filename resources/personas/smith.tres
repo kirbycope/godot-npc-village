@@ -1,9 +1,10 @@
 [gd_resource type="Resource" script_class="NPCPersona" format=3]
 
-[ext_resource type="Script" path="res://scripts/conversation/npc_persona.gd" id="1_5lfef"]
+[ext_resource type="PackedScene" path="res://assets/quaternius/characters/Male_Peasant.gltf" id="1_o38ev"]
+[ext_resource type="Script" path="res://scripts/conversation/npc_persona.gd" id="2_6bqa8"]
 
 [resource]
-script = ExtResource("1_5lfef")
+script = ExtResource("2_6bqa8")
 id = &"smith"
 display_name = "Aldric"
 occupation = "blacksmith"
@@ -15,8 +16,10 @@ relationships = Dictionary[StringName, String]({
 &"elder": "Thinks the old man means well and says too much.",
 &"guard": "Respects him. They drink together without talking much."
 })
-tunic_color = Color(0.24, 0.22, 0.21, 1)
-trim_color = Color(0.55, 0.38, 0.26, 1)
+outfit = ExtResource("1_o38ev")
+outfit_prefix = "Male_Peasant"
+hidden_parts = PackedStringArray()
+hair = PackedStringArray("Hair_Buzzed", "Hair_Beard")
 voice_id = "pNInz6obpgDQGcFmaJgB"
 voice_stability = 0.55
 voice_style = 0.25

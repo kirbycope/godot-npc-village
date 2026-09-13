@@ -36,14 +36,39 @@ extends Resource
 
 @export_group("Appearance")
 
-## Colour of the villager's clothing, applied over the model's main material. The
-## Quaternius mannequin ships a single gold body and a purple joint material, which
-## reads as a shop dummy; recolouring the two per persona is what turns six identical
-## mannequins into six people who can be told apart across a square.
-@export var tunic_color: Color = Color(0.62, 0.56, 0.45)
+## The villager's body and clothes. One of the Quaternius fantasy outfits under
+## `assets/quaternius/characters/`, which are modelled on the same rig as the Universal
+## Animation Library, so any outfit plays any animation without retargeting.
+##
+## This replaced an earlier scheme that recoloured one grey mannequin per villager. The
+## outfits are properly textured and silhouetted, so a blacksmith reads as a blacksmith
+## from across the square rather than as a differently tinted shop dummy.
+@export var outfit: PackedScene
 
-## Colour of the hands, face and boots, applied over the model's joint material.
-@export var trim_color: Color = Color(0.74, 0.58, 0.44)
+## Which meshes of the outfit to show, matched as a prefix of the mesh name.
+##
+## The fantasy outfit files each bundle several complete outfits rather than one. Opening
+## `Male_Wizard.gltf` and showing everything in it puts the wizard's robe, a noble's
+## doublet and a peasant's tunic on the same body at once, along with a crown floating
+## over the head. Naming the family here picks one of them, for example `Male_Wizard`.
+##
+## Left empty every mesh is shown, which is correct for the peasant files: those really
+## do contain one outfit.
+@export var outfit_prefix: String = ""
+
+## Parts to hide even when they match the prefix, matched as a suffix of the mesh name.
+##
+## The outfits are dressed for adventuring rather than for village life, so this is where
+## the serjeant loses his horned helm and the innkeeper his crown.
+@export var hidden_parts: PackedStringArray = PackedStringArray()
+
+## Whether this villager uses the feminine head and body proportions.
+@export var feminine: bool = false
+
+## Hairstyles worn, by file name under `assets/quaternius/hair/`. More than one is
+## normal: a beard and a head of hair are separate meshes, so Aldric wears
+## `Hair_Buzzed` and `Hair_Beard` together.
+@export var hair: PackedStringArray = PackedStringArray()
 
 
 @export_group("Voice")

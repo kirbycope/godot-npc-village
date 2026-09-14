@@ -45,8 +45,19 @@ func test_the_animation_libraries_import_as_libraries() -> void:
 
 
 func test_the_clips_the_villagers_rely_on_all_exist() -> void:
+	# Counting clips would pin this to whichever edition of the pack is vendored; the
+	# web build uses the smaller Standard libraries, which carry every clip the villagers
+	# actually play but a third of the total. What matters is that both libraries loaded
+	# and that the named clips are in them.
+	for path: String in ANIMATION_LIBRARIES:
+		var library: AnimationLibrary = load(path)
+		assert_not_null(library, "%s should load" % path)
+		if library != null:
+			assert_gt(
+				library.get_animation_list().size(), 0,
+				"%s should carry clips" % path.get_file(),
+			)
 	var names: PackedStringArray = _every_animation()
-	assert_gt(names.size(), 200, "both libraries should be present")
 	for clip: String in REQUIRED_CLIPS:
 		assert_true(names.has(clip), "the animation library is missing '%s'" % clip)
 

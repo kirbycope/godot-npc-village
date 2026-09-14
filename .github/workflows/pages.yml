@@ -1,0 +1,89 @@
+name: Demo on Pages
+
+# The web export is built here and handed straight to Pages rather than committed. It is
+# tens of megabytes of .wasm and .pck that git cannot delta, so a tracked export puts a
+# fresh copy of the whole thing in history on every re-export, and it goes stale silently:
+# Pages keeps deploying it while the site drifts behind main.
+#
+# The build has no API keys, which is the point of the committed voice bank. With no key
+# the villagers still speak their authored opening lines, because those are ordinary mp3
+# files in assets/voice that the export carries, and they fall quiet after them rather
+# than failing. A visitor gets a village that talks without anybody paying per visit.
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+env:
+  GODOT_VERSION: 4.8-dev4
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Fetch the addon dependencies
+        shell: bash
+        run: python tools/pull_addons.py
+
+      - name: Install Godot and its export templates
+        shell: bash
+        run: |
+          set -euo pipefail
+          base="https://github.com/godotengine/godot-builds/releases/download/${GODOT_VERSION}"
+          curl -fsSL -o godot.zip "${base}/Godot_v${GODOT_VERSION}_linux.x86_64.zip"
+          curl -fsSL -o templates.tpz "${base}/Godot_v${GODOT_VERSION}_export_templates.tpz"
+          unzip -q godot.zip
+          mv Godot_v${GODOT_VERSION}_linux.x86_64 /usr/local/bin/godot
+          chmod +x /usr/local/bin/godot
+          unzip -q templates.tpz
+          # The .tpz unpacks to templates/; Godot looks for them under the version's own directory.
+          mkdir -p "$HOME/.local/share/godot/export_templates/${GODOT_VERSION/-/.}"
+          mv templates/* "$HOME/.local/share/godot/export_templates/${GODOT_VERSION/-/.}/"
+
+      - name: Export the game
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p build
+          # Imported repeatedly before exporting. One pass only registers the files; each
+          # further pass writes the resources whose dependencies the previous pass
+          # produced. This project is asset-heavy enough to need several, and exporting
+          # early ships scenes whose textures were never written to .godot/imported,
+          # which the browser reports as a corrupt texture.
+          for _ in 1 2 3 4; do
+            godot --headless --path . --import
+          done
+          godot --headless --path . --export-release "Web" build/index.html
+          ls -la build
+
+      - name: Upload the export
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: build
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Deploy to Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

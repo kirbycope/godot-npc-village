@@ -71,9 +71,6 @@ const PLAYER_SCENE: String = "res://addons/3d_player_controller/scenes/player.ts
 const VILLAGER_SCENE_DIR: String = "res://scenes/villagers"
 const WORLD_SCENE_PATH: String = "res://scenes/world.tscn"
 
-## Lines a group falls back to when the model is unreachable.
-const FALLBACK_LINES: String = "res://resources/fallback_lines.json"
-
 ## Which way a wall faces. A wall model spans 2 m along X with its outward face towards
 ## +Z, and turning it 90 degrees about Y turns that face towards +X.
 const FACE_SOUTH: float = 0.0
@@ -137,8 +134,7 @@ func _build_world() -> bool:
 		[
 			{"persona": "smith", "offset": Vector3(-1.1, 0.0, 0.2)},
 			{"persona": "baker", "offset": Vector3(1.1, 0.0, -0.2)},
-		],
-		_fallback_for(&"square"))
+		])
 
 	_add_group(world, groups, &"tavern", "the door of the Crooked Hart",
 		"the tax collector, expected before the harvest",
@@ -146,8 +142,7 @@ func _build_world() -> bool:
 		[
 			{"persona": "innkeeper", "offset": Vector3(-1.0, 0.0, 0.3)},
 			{"persona": "guard", "offset": Vector3(1.0, 0.0, -0.3)},
-		],
-		_fallback_for(&"tavern"))
+		])
 
 	_add_group(world, groups, &"chapel", "the chapel steps",
 		"what was left at the chapel door, and the disturbed graves",
@@ -155,8 +150,7 @@ func _build_world() -> bool:
 		[
 			{"persona": "elder", "offset": Vector3(-1.0, 0.0, 0.0)},
 			{"persona": "healer", "offset": Vector3(1.0, 0.0, 0.0)},
-		],
-		_fallback_for(&"chapel"))
+		])
 
 	var hud: CanvasLayer = CanvasLayer.new()
 	hud.name = "SubtitleHUD"
@@ -718,7 +712,6 @@ func _add_group(
 	topic: String,
 	origin: Vector3,
 	members: Array,
-	fallback: Array,
 ) -> void:
 	var group: Node3D = Node3D.new()
 	group.name = String(id).capitalize().replace(" ", "")
@@ -776,10 +769,6 @@ func _add_group(
 	group.set("topic", topic)
 	group.set("npcs", typed)
 	group.set("player_area", area)
-	var lines: PackedStringArray = PackedStringArray()
-	for line: String in fallback:
-		lines.append(line)
-	group.set("fallback_lines", lines)
 
 	# CONNECT_PERSIST is what makes a connection part of the saved scene. Without it the
 	# connection exists only on the live object the builder made, `pack()` drops it, and
@@ -805,25 +794,6 @@ func _add_player(world: Node3D) -> void:
 		player.add_to_group("player", true)
 	world.add_child(player)
 	player.owner = world
-
-
-## The lines a group falls back to when the model cannot be reached, from
-## `resources/fallback_lines.json`. The opening lines are not here: those live on each
-## villager's own persona, where they are written by hand.
-func _fallback_for(group_id: StringName) -> Array:
-	var file: FileAccess = FileAccess.open(FALLBACK_LINES, FileAccess.READ)
-	if file == null:
-		return []
-	var reader: JSON = JSON.new()
-	var text: String = file.get_as_text()
-	file.close()
-	if reader.parse(text) != OK or typeof(reader.data) != TYPE_DICTIONARY:
-		return []
-	var groups: Variant = reader.data.get("groups", {})
-	if typeof(groups) != TYPE_DICTIONARY:
-		return []
-	var lines: Variant = groups.get(String(group_id), [])
-	return lines if typeof(lines) == TYPE_ARRAY else []
 
 
 ## Push to talk. It lives on the world rather than under the player so it survives the

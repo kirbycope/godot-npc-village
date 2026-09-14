@@ -109,122 +109,12 @@ func test_interrupting_stops_the_speaker_and_drops_the_rest() -> void:
 	assert_gt(_group.transcript().size(), 0, "what was already said is kept")
 
 
-func test_a_failed_beat_falls_back_to_the_authored_lines() -> void:
-	_group.fallback_lines = PackedStringArray([
-		"smith: Irons cost what they cost.",
-		"baker: And you shall have it.",
-	])
-	ConversationDirector.beat_failed.emit(&"test_group", "no API key")
-	await wait_frames(2)
-
-	assert_true(_group.is_performing(), "the village should not fall silent")
-	assert_gt(_group.transcript().size(), 0)
-
-
-func test_a_failed_beat_with_no_fallback_stays_quiet() -> void:
-	_group.fallback_lines = PackedStringArray()
+func test_a_failed_beat_leaves_them_quiet() -> void:
+	# There is nothing to fall back to by design. The villagers have already said their
+	# authored opening lines, and inventing filler would only be a worse version of them.
 	ConversationDirector.beat_failed.emit(&"test_group", "no API key")
 	await wait_frames(2)
 	assert_false(_group.is_performing())
-
-
-## A beat where one villager is given more lines than their allowance.
-func _greedy_beat() -> Array[ConversationTurn]:
-	var turns: Array[ConversationTurn] = []
-	for i: int in 5:
-		turns.append(ConversationTurn.new(&"baker", "Line %d." % i, &"neutral", &"none"))
-	return turns
-
-
-func test_a_delivered_beat_is_performed_whole() -> void:
-	# The allowance constrains what is asked for, never what is played. Dropping turns
-	# out of a finished beat threw away the half it was building towards and left
-	# exchanges ending on a line that was obviously waiting for a reply.
-	_group.begin_interaction()
-	ConversationDirector.beat_ready.emit(&"test_group", _greedy_beat())
-	await wait_frames(2)
-	await wait_seconds(7.0)
-
-	var spoken: int = 0
-	for turn: ConversationTurn in _group.transcript():
-		if turn.speaker == &"baker":
-			spoken += 1
-	assert_eq(spoken, 5, "every turn of a delivered beat should be performed")
-
-
-func test_the_allowance_is_offered_to_the_director() -> void:
-	# How the limit is actually enforced: the model is told the room it has and writes a
-	# beat that finishes inside it.
-	_group.begin_interaction()
-	var situation: Dictionary = _group._situation()
-	assert_true(situation.has("allowance"), "the situation should carry the allowance")
-	var allowance: Dictionary = situation["allowance"]
-	assert_eq(allowance.size(), 2, "both villagers should be listed")
-	for who: String in allowance:
-		assert_eq(
-			int(allowance[who]), _group.max_turns_per_villager,
-			"%s should start an interaction with a full allowance" % who,
-		)
-
-
-func test_the_allowance_shrinks_as_they_speak() -> void:
-	_group.begin_interaction()
-	ConversationDirector.beat_ready.emit(&"test_group", _beat())
-	await wait_frames(2)
-	await wait_seconds(5.0)
-
-	var allowance: Dictionary = _group._situation()["allowance"]
-	assert_lt(
-		int(allowance[_baker.persona.display_name]), _group.max_turns_per_villager,
-		"the baker has spoken, so she should have less room left",
-	)
-
-
-func test_a_spent_group_asks_for_nothing_more() -> void:
-	_group.begin_interaction()
-	var spend_everyone: Array[ConversationTurn] = []
-	for i: int in _group.max_turns_per_villager:
-		spend_everyone.append(ConversationTurn.new(&"baker", "Baker %d." % i))
-		spend_everyone.append(ConversationTurn.new(&"smith", "Smith %d." % i))
-	ConversationDirector.beat_ready.emit(&"test_group", spend_everyone)
-	await wait_frames(2)
-	await wait_seconds(7.0)
-	assert_false(_group._anyone_may_speak(), "everyone should be spent")
-
-	# The group must go quiet rather than keep buying beats nobody may perform.
-	watch_signals(_group)
-	_group._request_beat()
-	await wait_frames(2)
-	assert_signal_not_emitted(_group, "beat_started")
-
-
-func test_speaking_to_them_gives_the_allowance_back() -> void:
-	_group.begin_interaction()
-	ConversationDirector.beat_ready.emit(&"test_group", _greedy_beat())
-	await wait_frames(2)
-	await wait_seconds(6.0)
-	var before: int = _group.transcript().size()
-
-	# A direct question always earns an answer, whatever was said a moment ago. Refusing
-	# to reply because of an internal budget reads as the game being broken.
-	_group.hear_player("Maud, what did she buy?", _baker)
-	await wait_frames(2)
-	assert_true(
-		_group._may_speak(&"baker"),
-		"being spoken to should give the villager their lines back",
-	)
-	assert_gt(_group.transcript().size(), before, "the player's line joins the transcript")
-
-
-func test_arriving_gives_the_allowance_back() -> void:
-	_group.begin_interaction()
-	ConversationDirector.beat_ready.emit(&"test_group", _greedy_beat())
-	await wait_frames(2)
-	await wait_seconds(6.0)
-	assert_false(_group._may_speak(&"baker"), "the baker should be spent")
-
-	_group.begin_interaction()
-	assert_true(_group._may_speak(&"baker"), "walking up again should reset them")
 
 
 func test_the_villagers_turn_to_face_whoever_is_speaking() -> void:

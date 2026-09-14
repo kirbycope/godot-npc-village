@@ -88,12 +88,6 @@ signal turn_started(npc: NPC, turn: ConversationTurn)
 ## `converse_only_when_player_present` is on, since arrival is what starts a beat then.
 @export var autostart: bool = true
 
-@export_group("Fallback")
-
-## Spoken when the director is unavailable, so a keyless build still has a village that
-## murmurs. Each entry is "persona_id: line".
-@export var fallback_lines: PackedStringArray = PackedStringArray()
-
 var _transcript: Array[ConversationTurn] = []
 var _pending: Array[ConversationTurn] = []
 ## A beat that arrived while the previous one was still being performed.
@@ -393,6 +387,9 @@ func _on_beat_ready(group_id_in: StringName, turns: Array[ConversationTurn]) -> 
 	_advance()
 
 
+## Nothing more is said. The villagers have already spoken their authored opening lines
+## by this point, which is what a build with no model or no key has to offer; inventing a
+## murmur to fill the gap would only be a worse version of what they already said.
 func _on_beat_failed(group_id_in: StringName, reason: String) -> void:
 	if group_id_in != group_id:
 		return
@@ -400,13 +397,7 @@ func _on_beat_failed(group_id_in: StringName, reason: String) -> void:
 	push_warning("[ConversationGroup %s] %s" % [group_id, reason])
 	if _running:
 		return
-	_pending = _build_fallback_beat()
-	if _pending.is_empty():
-		_schedule_next()
-		return
-	_running = true
-	beat_started.emit(self)
-	_advance()
+	_schedule_next()
 
 
 ## The villagers' authored opening lines, in the order they stand. Anyone whose persona
@@ -435,13 +426,6 @@ func _parse_lines(lines: PackedStringArray) -> Array[ConversationTurn]:
 			entry.substr(split + 1).strip_edges(),
 		))
 	return turns
-
-
-## Turns `fallback_lines` into a beat so the village is never completely silent.
-func _build_fallback_beat() -> Array[ConversationTurn]:
-	var turns: Array[ConversationTurn] = _parse_lines(fallback_lines)
-	turns.shuffle()
-	return turns.slice(0, mini(3, turns.size()))
 
 
 func _advance() -> void:

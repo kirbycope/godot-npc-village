@@ -9,9 +9,9 @@ extends Node
 ##
 ## The first is the cache. Every clip is keyed by the hash of the text, the voice and
 ## the synthesis settings, and kept under `user://voice_cache/`. A line that has been
-## said before is read off disk and costs nothing, which matters because villagers
-## repeat themselves: greetings, refusals, and the authored fallback lines recur
-## constantly, and the model itself often lands on the same short phrase twice.
+## said before is read off disk and costs nothing, which matters because the hand-written
+## opening lines are said once per playthrough per group, and the model itself often
+## lands on the same short phrase twice.
 ##
 ## The second is the budget. The service reads the account's real character quota on
 ## startup and refuses to synthesize once the configured ceiling is reached, so an

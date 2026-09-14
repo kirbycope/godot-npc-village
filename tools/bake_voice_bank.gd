@@ -5,11 +5,11 @@ extends SceneTree
 ##     ... -s tools/bake_voice_bank.gd -- --dry-run      report, synthesize nothing
 ##     ... -s tools/bake_voice_bank.gd -- --promote-only copy from the cache, never call out
 ##
-## Two sources feed the bank. Every line already in the writable cache with an index
-## entry is promoted as it stands, costing nothing. Every authored fallback line found on
-## a `ConversationGroup` in the world scene is synthesized if it is not already there,
-## because those are the lines a keyless build falls back to and the ones most worth
-## having permanently.
+## The bank holds the hand-written opening lines and nothing else. Those are the lines on
+## each persona's `opening_line`, the first thing a player hears from a villager, and the
+## only dialogue that recurs word for word every session. Anything the model invented is
+## different every time, so its clip is dead weight the moment it is written and is
+## pruned out.
 ##
 ## The point of committing the bank is that the clips become ordinary files in git. A web
 ## build can then pull them from raw.githubusercontent.com at run time instead of
@@ -25,7 +25,6 @@ const BANK_DIR: String = "res://assets/voice"
 const MANIFEST: String = "res://assets/voice/manifest.json"
 const CACHE_DIR: String = "user://voice_cache"
 const CACHE_INDEX: String = "user://voice_cache/index.json"
-const FALLBACK_LINES: String = "res://resources/fallback_lines.json"
 const PERSONA_DIR: String = "res://resources/personas"
 
 ## Seconds to wait for one synthesis before giving up on it.
@@ -84,7 +83,7 @@ func _run() -> void:
 
 	_collect_authored()
 	_promote_cached_clips()
-	await _bake_fallback_lines()
+	await _bake_authored_lines()
 	_prune()
 
 	_write_manifest()
@@ -110,8 +109,8 @@ func _load_manifest() -> void:
 
 ## Works out the cache key of every hand-written line, before anything is copied.
 ##
-## Hand-written means the `opening_line` on each persona and anything in the fallback
-## file. Those are fixed text: they recur every session, so a clip of one is worth
+## Hand-written means the `opening_line` on each persona. Those are fixed text: they
+## recur every session, so a clip of one is worth
 ## carrying in the repository forever. A line the model invented is different every time
 ## and its clip is dead weight the moment it is written, which is why the bank is pruned
 ## down to this set.
@@ -120,8 +119,6 @@ func _collect_authored() -> void:
 		var line: String = persona.opening_line.strip_edges()
 		if not line.is_empty():
 			_authored[_voice.call("_cache_key", line, persona)] = true
-	for pair: Array in _fallback_pairs():
-		_authored[_voice.call("_cache_key", pair[1], pair[0])] = true
 	print("Hand-written lines: %d" % _authored.size())
 
 
@@ -165,8 +162,8 @@ func _promote_cached_clips() -> void:
 			_failed += 1
 
 
-## Synthesizes every hand-written line that is not already in the bank.
-func _bake_fallback_lines() -> void:
+## Synthesizes every hand-written opening line that is not already in the bank.
+func _bake_authored_lines() -> void:
 	var personas: Dictionary = _load_personas()
 	var ids: Array = personas.keys()
 	ids.sort()
@@ -175,37 +172,6 @@ func _bake_fallback_lines() -> void:
 		var line: String = persona.opening_line.strip_edges()
 		if not line.is_empty():
 			await _bake_one(persona, line)
-	for pair: Array in _fallback_pairs():
-		await _bake_one(pair[0], pair[1])
-
-
-## Every fallback line as [persona, text].
-func _fallback_pairs() -> Array:
-	var pairs: Array = []
-	var file: FileAccess = FileAccess.open(FALLBACK_LINES, FileAccess.READ)
-	if file == null:
-		return pairs
-	var reader: JSON = JSON.new()
-	var text: String = file.get_as_text()
-	file.close()
-	if reader.parse(text) != OK or typeof(reader.data) != TYPE_DICTIONARY:
-		return pairs
-	var personas: Dictionary = _load_personas()
-	var groups: Variant = reader.data.get("groups", {})
-	if typeof(groups) != TYPE_DICTIONARY:
-		return pairs
-	for group_id: String in groups:
-		var lines: Variant = groups[group_id]
-		if typeof(lines) != TYPE_ARRAY:
-			continue
-		for line: String in lines:
-			var split: int = line.find(":")
-			if split <= 0:
-				continue
-			var persona_id: String = line.substr(0, split).strip_edges()
-			if personas.has(persona_id):
-				pairs.append([personas[persona_id], line.substr(split + 1).strip_edges()])
-	return pairs
 
 
 ## Every persona in the project, by id.

@@ -1,8 +1,0 @@
-{
-  "_comment": "What a group says when the dialogue model cannot be reached at all. Not the opening: each villager's first line is written on their own resources/personas/<id>.tres. Entries are 'persona_id: line'.",
-  "groups": {
-    "square": [],
-    "tavern": [],
-    "chapel": []
-  }
-}

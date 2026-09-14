@@ -469,3 +469,27 @@ func _on_remote_completed(
 		return
 	_write_cache(key, body)
 	clip_ready.emit(handle, stream, true)
+
+
+## The opening lines for `persona_id`, in the order they should be spoken.
+##
+## Read from the committed bank's manifest, which is where the authored dialogue lives:
+## it is baked once, carried in the repository, and is the only text in the game that is
+## the same every session. Returns nothing when nothing has been baked.
+func opening_lines_for(persona_id: StringName) -> Array[String]:
+	var found: Array[Dictionary] = []
+	for key: String in _bank:
+		var entry: Dictionary = _bank[key]
+		if not entry.has("opening_order"):
+			continue
+		if StringName(str(entry.get("persona", ""))) != persona_id:
+			continue
+		found.append(entry)
+	found.sort_custom(
+		func(a: Dictionary, b: Dictionary) -> bool:
+			return int(a["opening_order"]) < int(b["opening_order"])
+	)
+	var lines: Array[String] = []
+	for entry: Dictionary in found:
+		lines.append(str(entry["text"]))
+	return lines

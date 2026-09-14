@@ -400,17 +400,29 @@ func _on_beat_failed(group_id_in: StringName, reason: String) -> void:
 	_schedule_next()
 
 
-## The villagers' authored opening lines, in the order they stand. Anyone whose persona
-## has no opening line written simply does not speak here.
+## The villagers' authored opening lines, taken from the committed voice bank.
+##
+## The bank's manifest is where the authored dialogue lives, so a line that has been
+## baked is both the text and the clip: the opening is spoken aloud without a key, a
+## request or a character of quota. A villager with nothing baked simply does not open.
+##
+## Ordered by each line's `opening_order` so a written exchange plays as written, rather
+## than in whatever order the villagers happen to stand.
 func _opening_beat() -> Array[ConversationTurn]:
-	var turns: Array[ConversationTurn] = []
+	var ordered: Array[Dictionary] = []
 	for npc: NPC in npcs:
 		if not is_instance_valid(npc) or npc.persona == null:
 			continue
-		var line: String = npc.persona.opening_line.strip_edges()
-		if line.is_empty():
-			continue
-		turns.append(ConversationTurn.new(npc.persona_id(), line))
+		var index: int = 0
+		for line: String in VoiceService.opening_lines_for(npc.persona_id()):
+			ordered.append({"speaker": npc.persona_id(), "line": line, "order": index})
+			index += 1
+	ordered.sort_custom(
+		func(a: Dictionary, b: Dictionary) -> bool: return int(a["order"]) < int(b["order"])
+	)
+	var turns: Array[ConversationTurn] = []
+	for entry: Dictionary in ordered:
+		turns.append(ConversationTurn.new(entry["speaker"], str(entry["line"])))
 	return turns
 
 

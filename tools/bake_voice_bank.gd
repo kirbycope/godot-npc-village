@@ -27,6 +27,50 @@ const CACHE_DIR: String = "user://voice_cache"
 const CACHE_INDEX: String = "user://voice_cache/index.json"
 const PERSONA_DIR: String = "res://resources/personas"
 
+
+## The villagers' opening lines, written by hand.
+##
+## Each is the first thing that villager says when the player walks up to their group,
+## before the dialogue model is asked for anything, and both lines of a pair are written
+## to be heard together. They go into the transcript, so the model continues in whatever
+## register they set: these are the tuning fork for every line that follows.
+##
+## Each one is also doing quiet work. A villager opens on something they know and have
+## not told anybody, or on the thing they are avoiding, so the first exchange already has
+## a withheld fact under it rather than being weather and greetings.
+const OPENING_LINES: Array[Dictionary] = [
+	{
+		"persona": "smith",
+		"order": 0,
+		"line": "Six days the river has held its tongue, and I have never known it keep a thing so long.",
+	},
+	{
+		"persona": "baker",
+		"order": 1,
+		"line": "She bought two loaves of me that morning, and she a girl who ate like a sparrow. I have said it to nobody but you.",
+	},
+	{
+		"persona": "innkeeper",
+		"order": 0,
+		"line": "There is a gentleman coming who will want to read my ledger, serjeant, and I cannot recommend it as literature.",
+	},
+	{
+		"persona": "guard",
+		"order": 1,
+		"line": "Then mend it before he comes. I have troubles enough that will not be mended by Sunday.",
+	},
+	{
+		"persona": "elder",
+		"order": 0,
+		"line": "You have come down the hill again, Wenna, and you never come down it for the good of your health.",
+	},
+	{
+		"persona": "healer",
+		"order": 1,
+		"line": "No more do you stand at that door since first light for the view of it, Father.",
+	},
+]
+
 ## Seconds to wait for one synthesis before giving up on it.
 const REQUEST_TIMEOUT: float = 30.0
 
@@ -115,10 +159,11 @@ func _load_manifest() -> void:
 ## and its clip is dead weight the moment it is written, which is why the bank is pruned
 ## down to this set.
 func _collect_authored() -> void:
-	for persona: NPCPersona in _load_personas().values():
-		var line: String = persona.opening_line.strip_edges()
-		if not line.is_empty():
-			_authored[_voice.call("_cache_key", line, persona)] = true
+	var personas: Dictionary = _load_personas()
+	for entry: Dictionary in OPENING_LINES:
+		var persona: NPCPersona = personas.get(str(entry["persona"]))
+		if persona != null:
+			_authored[_voice.call("_cache_key", str(entry["line"]), persona)] = true
 	print("Hand-written lines: %d" % _authored.size())
 
 
@@ -165,13 +210,12 @@ func _promote_cached_clips() -> void:
 ## Synthesizes every hand-written opening line that is not already in the bank.
 func _bake_authored_lines() -> void:
 	var personas: Dictionary = _load_personas()
-	var ids: Array = personas.keys()
-	ids.sort()
-	for persona_id: String in ids:
-		var persona: NPCPersona = personas[persona_id]
-		var line: String = persona.opening_line.strip_edges()
-		if not line.is_empty():
-			await _bake_one(persona, line)
+	for entry: Dictionary in OPENING_LINES:
+		var persona: NPCPersona = personas.get(str(entry["persona"]))
+		if persona == null:
+			push_warning("No persona '%s' for an opening line." % entry["persona"])
+			continue
+		await _bake_one(persona, str(entry["line"]), int(entry["order"]))
 
 
 ## Every persona in the project, by id.
@@ -189,7 +233,7 @@ func _load_personas() -> Dictionary:
 	return personas
 
 
-func _bake_one(persona: NPCPersona, text: String) -> void:
+func _bake_one(persona: NPCPersona, text: String, order: int = -1) -> void:
 	var key: String = _voice.call("_cache_key", text, persona)
 	if _manifest.has(key):
 		_skipped += 1
@@ -202,7 +246,7 @@ func _bake_one(persona: NPCPersona, text: String) -> void:
 	if FileAccess.file_exists(banked):
 		print("  adopt    %-9s %s" % [persona.display_name, _preview(text)])
 		if not _dry_run:
-			_manifest[key] = _entry(persona, text, FileAccess.get_file_as_bytes(banked))
+			_manifest[key] = _entry(persona, text, FileAccess.get_file_as_bytes(banked), order)
 		_promoted += 1
 		return
 
@@ -211,7 +255,7 @@ func _bake_one(persona: NPCPersona, text: String) -> void:
 	if FileAccess.file_exists(cached):
 		print("  promote  %-9s %s" % [persona.display_name, _preview(text)])
 		if not _dry_run and _copy(cached, "%s/%s.mp3" % [BANK_DIR, key]):
-			_manifest[key] = _entry(persona, text, FileAccess.get_file_as_bytes(cached))
+			_manifest[key] = _entry(persona, text, FileAccess.get_file_as_bytes(cached), order)
 			_promoted += 1
 		return
 
@@ -238,7 +282,7 @@ func _bake_one(persona: NPCPersona, text: String) -> void:
 		return
 	file.store_buffer(bytes)
 	file.close()
-	_manifest[key] = _entry(persona, text, bytes)
+	_manifest[key] = _entry(persona, text, bytes, order)
 	_baked += 1
 	_characters += text.length()
 
@@ -294,12 +338,14 @@ func _synthesize(persona: NPCPersona, text: String) -> PackedByteArray:
 ## a loaded resource: a file written to `res://` this instant has not been imported yet,
 ## so loading it fails and every freshly baked clip would be recorded as zero seconds
 ## long.
-func _entry(persona: NPCPersona, text: String, bytes: PackedByteArray) -> Dictionary:
+func _entry(
+	persona: NPCPersona, text: String, bytes: PackedByteArray, order: int = -1
+) -> Dictionary:
 	var seconds: float = 0.0
 	var stream: AudioStreamMP3 = AudioStreamMP3.load_from_buffer(bytes)
 	if stream != null:
 		seconds = stream.get_length()
-	return {
+	var entry: Dictionary = {
 		"text": text,
 		"persona": String(persona.id),
 		"speaker": persona.display_name,
@@ -307,6 +353,11 @@ func _entry(persona: NPCPersona, text: String, bytes: PackedByteArray) -> Dictio
 		"model_id": _voice_constants["MODEL_ID"],
 		"seconds": snappedf(seconds, 0.01),
 	}
+	if order >= 0:
+		# Marks this as an opening line and fixes where it falls in the exchange, so the
+		# game can read its openings straight out of the manifest.
+		entry["opening_order"] = order
+	return entry
 
 
 func _copy(source: String, target: String) -> bool:

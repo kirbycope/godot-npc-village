@@ -1,0 +1,61 @@
+{
+	"_comment": "Clips committed to this repository, named by the hash VoiceService looks up. Built by tools/bake_voice_bank.gd; do not edit by hand.",
+	"clips": {
+		"44630204f04396e9a8d1f8d3a251a4abf71c32a68462bf305ecd7d6b1a4cc176": {
+			"model_id": "eleven_flash_v2_5",
+			"opening_order": 0,
+			"persona": "innkeeper",
+			"seconds": 6.32,
+			"speaker": "Corwin",
+			"text": "There is a gentleman coming who will want to read my ledger, serjeant, and I cannot recommend it as literature.",
+			"voice_id": "JBFqnCBsd6RMkjVDRZzb"
+		},
+		"72a871bd2376a94b4657f1eee94383fa383589b9b4d6e061666375a3616fcc7c": {
+			"model_id": "eleven_flash_v2_5",
+			"opening_order": 1,
+			"persona": "healer",
+			"seconds": 4.83,
+			"speaker": "Wenna",
+			"text": "No more do you stand at that door since first light for the view of it, Father.",
+			"voice_id": "pFZP5JQG7iQjIQuC4Bku"
+		},
+		"9f6619a0d36993460dafa84b9faa4e40e8eec35e275f1af22475286b1d579660": {
+			"model_id": "eleven_flash_v2_5",
+			"opening_order": 1,
+			"persona": "baker",
+			"seconds": 7.34,
+			"speaker": "Maud",
+			"text": "She bought two loaves of me that morning, and she a girl who ate like a sparrow. I have said it to nobody but you.",
+			"voice_id": "Xb7hH8MSUJpSbSDYk0k2"
+		},
+		"cd5a07f3913232cca4fe82e51eb1f02e0b4c2efb435d610c9eba454186fa7721": {
+			"model_id": "eleven_flash_v2_5",
+			"opening_order": 0,
+			"persona": "smith",
+			"seconds": 4.78,
+			"speaker": "Aldric",
+			"text": "Six days the river has held its tongue, and I have never known it keep a thing so long.",
+			"voice_id": "pNInz6obpgDQGcFmaJgB"
+		},
+		"ceb0a55d902711644fe767cb1396b57c7544053771d7307a2d5fa26790637e54": {
+			"model_id": "eleven_flash_v2_5",
+			"opening_order": 1,
+			"persona": "guard",
+			"seconds": 5.53,
+			"speaker": "Serjeant Hale",
+			"text": "Then mend it before he comes. I have troubles enough that will not be mended by Sunday.",
+			"voice_id": "onwK4e9ZLuTAKqWW03F9"
+		},
+		"db5106689603204ca33de539a20c4384ec6a964ae817c2e4f992c372117f9d58": {
+			"model_id": "eleven_flash_v2_5",
+			"opening_order": 0,
+			"persona": "elder",
+			"seconds": 5.29,
+			"speaker": "Father Brannoc",
+			"text": "You have come down the hill again, Wenna, and you never come down it for the good of your health.",
+			"voice_id": "pqHfZKP75CvOlQylNhV4"
+		}
+	},
+	"model_id": "eleven_flash_v2_5",
+	"output_format": "mp3_44100_128"
+}

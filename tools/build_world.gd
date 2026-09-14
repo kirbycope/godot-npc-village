@@ -542,10 +542,15 @@ func _add_grass(parent: Node3D, world: Node3D) -> void:
 	field.position = Vector3.ZERO
 	parent.add_child(field)
 	field.owner = world
-	field.set("field_size", Vector2(150.0, 150.0))
-	field.set("instance_count", 14000)
-	field.set("min_scale", 0.65)
-	field.set("max_scale", 1.5)
+	# Density and scale are taken from the addon's own demo, which runs four blades per
+	# square metre at roughly a third to two thirds of the mesh's natural size. Left at
+	# full size the blades stand taller than the cobbles are wide and read as a hayfield;
+	# scaled down without raising the count they read as a lawn that needs seeding.
+	var side: float = 130.0
+	field.set("field_size", Vector2(side, side))
+	field.set("instance_count", int(side * side * 4.0))
+	field.set("min_scale", 0.3)
+	field.set("max_scale", 0.6)
 	field.set("cast_grass_shadows", false)
 	field.set("additional_exclusion_zones", _exclusions)
 	var weather: Node = world.get_node_or_null("WeatherFX")

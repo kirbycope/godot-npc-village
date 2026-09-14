@@ -38,6 +38,32 @@ jobs:
           mv Godot_v${GODOT_VERSION}_linux.x86_64 /usr/local/bin/godot
           chmod +x /usr/local/bin/godot
 
+      - name: Install Blender when the project has a .blend
+        shell: bash
+        run: |
+          set -euo pipefail
+          if ! find . -name '*.blend' -not -path './.git/*' | grep -q .; then
+            echo "No .blend in this repository; Godot will never reach for Blender."
+            exit 0
+          fi
+          echo "Found a .blend; installing Blender."
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends blender
+          # Godot must be told where Blender is. Without this it fails with "Cannot
+          # configure blender path in headless mode", and that error aborts the WHOLE
+          # import: no fonts, no textures, and an export a tenth of its proper size. This
+          # repository ships one .blend, inside the weather_fx addon, and without this
+          # step the web export came out at 8.6 MB instead of 85 MB.
+          settings="$HOME/.config/godot/editor_settings-${GODOT_VERSION%%-*}.tres"
+          mkdir -p "$(dirname "$settings")"
+          {
+            echo '[gd_resource type="EditorSettings" format=3]'
+            echo
+            echo '[resource]'
+            echo 'filesystem/import/blender/blender_path = "/usr/bin/blender"'
+          } > "$settings"
+          blender --version | head -1
+
       - name: Import the project
         shell: bash
         run: |

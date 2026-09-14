@@ -63,16 +63,25 @@ const MAX_CONCURRENT: int = 4
 
 const TIMEOUT_SECONDS: float = 20.0
 
-## Characters this session may synthesize before the service refuses.
+## Characters one interaction may synthesize, reset every time the player walks up to a
+## group, speaks to one, or engages one.
 ##
-## A free ElevenLabs account gets 10,000 characters a month and a spoken line runs 50 to
-## 100 of them, so this is roughly twenty conversations in one sitting.
+## This replaced a ceiling that counted the whole session and never reset, which locked
+## the villagers into silence part way through an evening while the account still had
+## thousands of characters left. A budget that does not reset is a worse version of the
+## monthly quota, and the account already has one of those.
 ##
-## This used to be the only brake and had to be tight enough to hurt. The real control is
-## now `ConversationGroup.max_turns_per_villager`, which stops a group after two lines
-## each until the player speaks or walks away and comes back; this is the backstop behind
-## it rather than the thing that shapes play, so it can afford to be looser.
-@export var session_character_ceiling: int = 2000
+## Generous, because it is not the thing shaping how much they talk:
+## `ConversationGroup.max_turns_per_villager` is, and it stops a group after three lines
+## each until the player does something. This only catches a runaway.
+@export var interaction_character_budget: int = 900
+
+## Stop synthesizing when this many characters of the month's quota remain.
+##
+## The real limit is the account's, not an invented one, so it is read from the API and
+## respected directly. The reserve leaves enough in hand that the villagers do not use
+## the last of the month on ambient chatter.
+@export var monthly_reserve: int = 200
 
 ## Set false to silence the villagers without removing the key.
 @export var enabled: bool = true
@@ -89,6 +98,13 @@ const TIMEOUT_SECONDS: float = 20.0
 )
 
 var _characters_used: int = 0
+
+## Characters synthesized since the current interaction began.
+var _interaction_characters: int = 0
+
+## When the account's quota was last read, so walking in and out of a group does not
+## re-read it on every step.
+var _quota_checked_at: float = -1000.0
 var _quota_used: int = 0
 var _quota_limit: int = 0
 var _tier: String = ""
@@ -120,9 +136,33 @@ func _ready() -> void:
 	_fetch_quota()
 
 
-## Whether a key is present and the budget has not been spent.
+## Whether a key is present, this interaction has budget left, and the account has quota.
 func is_available() -> bool:
-	return _available and enabled and _characters_used < session_character_ceiling
+	return (
+		_available
+		and enabled
+		and _interaction_characters < interaction_character_budget
+		and characters_remaining() > monthly_reserve
+	)
+
+
+## What the account has left this month, as far as this process knows: the figure the API
+## reported, less whatever has been spent since.
+func characters_remaining() -> int:
+	if _quota_limit <= 0:
+		return 1 << 30
+	return _quota_limit - _quota_used - _characters_used
+
+
+## A new interaction: the player walked up, spoke, or engaged somebody. The per
+## interaction budget starts again, and the account's real quota is re-read so the figure
+## being spent against is not one from the beginning of the session.
+func begin_interaction() -> void:
+	_interaction_characters = 0
+	var now: float = Time.get_ticks_msec() * 0.001
+	if _available and not RuntimeMode.is_offline() and now - _quota_checked_at > 60.0:
+		_quota_checked_at = now
+		_fetch_quota()
 
 
 ## Characters synthesized this session. Cache hits do not count.
@@ -171,9 +211,19 @@ func speak(text: String, persona: NPCPersona) -> int:
 	if not enabled or not _available:
 		return 0
 
-	if _characters_used + line.length() > session_character_ceiling:
-		budget_exhausted.emit(_characters_used, session_character_ceiling)
-		clip_failed.emit.call_deferred(handle, "session character ceiling reached")
+	if _interaction_characters + line.length() > interaction_character_budget:
+		budget_exhausted.emit(_interaction_characters, interaction_character_budget)
+		clip_failed.emit.call_deferred(
+			handle, "this interaction's character budget is spent"
+		)
+		return handle
+
+	if characters_remaining() - line.length() <= monthly_reserve:
+		budget_exhausted.emit(_characters_used, _quota_limit)
+		clip_failed.emit.call_deferred(
+			handle,
+			"the month's quota is nearly gone: %d characters left" % characters_remaining(),
+		)
 		return handle
 
 	_queue.append({
@@ -233,6 +283,7 @@ func _send(job: Dictionary) -> void:
 		_pump()
 		return
 	_characters_used += text.length()
+	_interaction_characters += text.length()
 
 
 func _on_clip_completed(
@@ -349,11 +400,8 @@ func _on_quota_completed(
 	_quota_used = int(parsed.get("character_count", 0))
 	_quota_limit = int(parsed.get("character_limit", 0))
 	_tier = str(parsed.get("tier", ""))
-	var remaining: int = _quota_limit - _quota_used
-	if remaining < session_character_ceiling:
-		session_character_ceiling = maxi(0, remaining)
-	print("[VoiceService] %s tier, %d of %d characters used this month." % [
-		_tier, _quota_used, _quota_limit,
+	print("[VoiceService] %s tier, %d of %d characters used this month (%d left)." % [
+		_tier, _quota_used, _quota_limit, _quota_limit - _quota_used,
 	])
 	quota_updated.emit(_quota_used, _quota_limit, _tier)
 

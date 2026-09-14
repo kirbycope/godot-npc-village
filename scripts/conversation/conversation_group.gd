@@ -179,9 +179,12 @@ func _on_player_area_body_exited(body: Node3D) -> void:
 	_player_present = false
 	if converse_only_when_player_present:
 		# Let the current line finish so the conversation fades out behind you rather
-		# than being cut off the instant you step away.
+		# than being cut off the instant you step away. Walking off also ends the
+		# interaction: coming back starts a new one, with its allowance and its voice
+		# budget restored.
 		_pending.clear()
 		_prefetched.clear()
+		_opening_spent = _opening_spent and _transcript.size() > _opening_beat().size()
 		return
 	_restart_for_changed_situation()
 
@@ -264,6 +267,10 @@ func _on_npc_engaged(_npc: NPC) -> void:
 func begin_interaction() -> void:
 	_turns_taken.clear()
 	_wrap_up_used = false
+	# The voice budget resets with the conversation. Walking away and coming back is the
+	# player saying they want more of this, and the villagers being mute for the rest of
+	# the evening because of a counter that never resets is not a decision anybody made.
+	VoiceService.begin_interaction()
 
 
 ## Whether `id` has anything left to say in this interaction.

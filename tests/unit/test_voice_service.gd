@@ -142,3 +142,44 @@ func test_speak_refuses_a_persona_with_no_voice() -> void:
 
 func test_speak_refuses_an_empty_line() -> void:
 	assert_eq(VoiceService.speak("   ", _persona), 0)
+
+
+func test_the_budget_is_per_interaction_not_per_session() -> void:
+	# A ceiling counting the whole session locked the villagers into silence part way
+	# through an evening while the account still had thousands of characters left.
+	VoiceService.begin_interaction()
+	assert_eq(
+		VoiceService._interaction_characters, 0,
+		"a new interaction starts with its budget whole",
+	)
+	VoiceService._interaction_characters = VoiceService.interaction_character_budget
+	assert_false(VoiceService.is_available(), "a spent budget stops synthesis")
+
+	# Walking away and coming back is the player asking for more.
+	VoiceService.begin_interaction()
+	assert_eq(VoiceService._interaction_characters, 0, "and coming back restores it")
+
+
+func test_the_month_is_the_real_limit() -> void:
+	# The account's own quota is the hard stop, not an invented one.
+	var limit: int = VoiceService._quota_limit
+	var used: int = VoiceService._quota_used
+	VoiceService._quota_limit = 10000
+	VoiceService._quota_used = 9900
+	VoiceService.begin_interaction()
+	assert_lt(
+		VoiceService.characters_remaining(), VoiceService.monthly_reserve + 1,
+		"with the month nearly gone there should be nothing left to spend",
+	)
+	assert_false(VoiceService.is_available(), "and synthesis should stop")
+	VoiceService._quota_limit = limit
+	VoiceService._quota_used = used
+
+
+func test_an_unknown_quota_does_not_block_synthesis() -> void:
+	# Before the API answers, the limit reads as zero. Treating that as "nothing left"
+	# would mute the villagers for the first seconds of every session.
+	var limit: int = VoiceService._quota_limit
+	VoiceService._quota_limit = 0
+	assert_gt(VoiceService.characters_remaining(), VoiceService.monthly_reserve)
+	VoiceService._quota_limit = limit

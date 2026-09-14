@@ -1,0 +1,124 @@
+{
+	"_comment": "Clips committed to this repository, named by the hash VoiceService looks up. Built by tools/bake_voice_bank.gd; do not edit by hand.",
+	"clips": {
+		"0a40313ce730a1ca2f478e99b417b40936d7883e46e02b30c058db369781563f": {
+			"bytes": 65663.0,
+			"model_id": "eleven_flash_v2_5",
+			"persona": "smith",
+			"seconds": 4.04,
+			"speaker": "Aldric",
+			"text": "Six days. Nobody's walked the river bank past the willows.",
+			"voice_id": "pNInz6obpgDQGcFmaJgB"
+		},
+		"1a24f8a2313681717623529e35f55d4aebac7f0c1c69bf82d760c20da354832a": {
+			"model_id": "eleven_flash_v2_5",
+			"persona": "smith",
+			"seconds": 1.21,
+			"speaker": "Aldric",
+			"text": "I've heard that before.",
+			"voice_id": "pNInz6obpgDQGcFmaJgB"
+		},
+		"2a2d8b7a8a6254e9195d424f5cbe91e9f7cad0dee81aa46ae9c87c1c3efb1e64": {
+			"bytes": 91159.0,
+			"model_id": "eleven_flash_v2_5",
+			"persona": "baker",
+			"seconds": 5.62,
+			"speaker": "Maud",
+			"text": "Old coin. What sort of man carries his grandfather's money and won't say his own name?",
+			"voice_id": "Xb7hH8MSUJpSbSDYk0k2"
+		},
+		"364c78dde76be00a4e35de8da27c4f84d6041ea480190ddbf5b3f0eb3cb0ae23": {
+			"bytes": 50199.0,
+			"model_id": "eleven_flash_v2_5",
+			"persona": "smith",
+			"seconds": 3.07,
+			"speaker": "Aldric",
+			"text": "Three nights back, that. Same road the willows run along.",
+			"voice_id": "pNInz6obpgDQGcFmaJgB"
+		},
+		"3879d65abf810f7f37b561bbad4f6d8dcfa0ac14f645beba489c5c2fbfafcf19": {
+			"model_id": "eleven_flash_v2_5",
+			"persona": "baker",
+			"seconds": 2.46,
+			"speaker": "Maud",
+			"text": "And you'll have it, and a loaf besides.",
+			"voice_id": "Xb7hH8MSUJpSbSDYk0k2"
+		},
+		"4293e98dc738a98c10da4a0ff6db7d04ecc98decd9f038d75893936996bf462a": {
+			"model_id": "eleven_flash_v2_5",
+			"persona": "guard",
+			"seconds": 2.18,
+			"speaker": "Serjeant Hale",
+			"text": "I want a good deal of things, Corwin.",
+			"voice_id": "onwK4e9ZLuTAKqWW03F9"
+		},
+		"4d159759a5cf69487960ab364ba61c7d779e5eaacafe67e160869ae36065332f": {
+			"model_id": "eleven_flash_v2_5",
+			"persona": "innkeeper",
+			"seconds": 1.9,
+			"speaker": "Corwin",
+			"text": "Then have a drink while you want them.",
+			"voice_id": "JBFqnCBsd6RMkjVDRZzb"
+		},
+		"5d008bd6d0c9434f5a485c645af00623d3be1820854662d54a083eadf7aca8ef": {
+			"model_id": "eleven_flash_v2_5",
+			"persona": "elder",
+			"seconds": 3.39,
+			"speaker": "Father Brannoc",
+			"text": "You came because you cannot leave it alone. Nor can I.",
+			"voice_id": "pqHfZKP75CvOlQylNhV4"
+		},
+		"b94a5f7dc66841313fe4494a523808ea6a03c94e1cc77f84cbbd1281ed5dc5c9": {
+			"bytes": 74022.0,
+			"model_id": "eleven_flash_v2_5",
+			"persona": "smith",
+			"seconds": 4.55,
+			"speaker": "Aldric",
+			"text": "He gave no name and I didn't ask for one. He paid, and his coin was older than me.",
+			"voice_id": "pNInz6obpgDQGcFmaJgB"
+		},
+		"c0d590c97023f944c348705b7fb29fb6d74b323282795651df9dfe32ba868909": {
+			"model_id": "eleven_flash_v2_5",
+			"persona": "elder",
+			"seconds": 2.28,
+			"speaker": "Father Brannoc",
+			"text": "You needn't have come down the hill for this.",
+			"voice_id": "pqHfZKP75CvOlQylNhV4"
+		},
+		"c619536aa2aef896dde1412d41546c4a3aac3176e2155be1169e8307ed6915ea": {
+			"model_id": "eleven_flash_v2_5",
+			"persona": "innkeeper",
+			"seconds": 2.32,
+			"speaker": "Corwin",
+			"text": "You'll want the ledger straight before he comes.",
+			"voice_id": "JBFqnCBsd6RMkjVDRZzb"
+		},
+		"e62f2d8269510e303a2e9adeb5eab79a5ba481b06523959256007722acb75201": {
+			"model_id": "eleven_flash_v2_5",
+			"persona": "healer",
+			"seconds": 1.49,
+			"speaker": "Wenna",
+			"text": "I came for the air, Father.",
+			"voice_id": "pFZP5JQG7iQjIQuC4Bku"
+		},
+		"e6e14bfc167e4c17e0072171f375b3243931c88a2a2326c21d1104623839930e": {
+			"model_id": "eleven_flash_v2_5",
+			"persona": "smith",
+			"seconds": 1.76,
+			"speaker": "Aldric",
+			"text": "Irons cost what they cost, Maud.",
+			"voice_id": "pNInz6obpgDQGcFmaJgB"
+		},
+		"f06ca77de5f82be96b7caa448a81633eeded79e4ffaa37219eaac6741a5904b7": {
+			"bytes": 64827.0,
+			"model_id": "eleven_flash_v2_5",
+			"persona": "smith",
+			"seconds": 3.99,
+			"speaker": "Aldric",
+			"text": "The sort who pays. That's more than I can say for some standing here.",
+			"voice_id": "pNInz6obpgDQGcFmaJgB"
+		}
+	},
+	"model_id": "eleven_flash_v2_5",
+	"output_format": "mp3_44100_128"
+}

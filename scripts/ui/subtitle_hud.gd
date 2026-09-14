@@ -32,6 +32,7 @@ func _ready() -> void:
 	_build()
 	# Deferred so every NPC has run its own `_ready` and is discoverable.
 	_connect_villagers.call_deferred()
+	_connect_player_voice.call_deferred()
 
 
 ## Wires up every villager currently in the scene.
@@ -43,6 +44,42 @@ func _connect_villagers() -> void:
 	for node: Node in get_tree().current_scene.find_children("*", "CharacterBody3D", true, false):
 		if node is NPC:
 			_connect_one(node)
+
+
+## Listens for the player's own microphone, so holding the key shows on screen and the
+## line that was understood is played back to them. Without that the player cannot tell
+## whether they were heard, whether they were misheard, or whether nothing happened.
+func _connect_player_voice() -> void:
+	var voice: Node = get_tree().get_first_node_in_group("player_voice")
+	if voice == null:
+		return
+	voice.connect("started_listening", _on_listening)
+	voice.connect("spoke", _on_player_spoke)
+	voice.connect("failed", _on_player_failed)
+
+
+func _on_listening() -> void:
+	_current = null
+	_speaker_label.text = "You"
+	_line_label.text = "listening..."
+	_fade_to(1.0)
+
+
+func _on_player_spoke(line: String, _addressed: NPC) -> void:
+	_current = null
+	_speaker_label.text = "You"
+	_line_label.text = line
+	_fade_to(1.0)
+	# Held until a villager answers, so the player can read back what was understood.
+
+
+func _on_player_failed(reason: String) -> void:
+	_current = null
+	_speaker_label.text = "You"
+	_line_label.text = "(%s)" % reason
+	_fade_to(1.0)
+	var timer: SceneTreeTimer = get_tree().create_timer(1.6)
+	timer.timeout.connect(_clear_if_idle)
 
 
 func _connect_one(node: Node) -> void:

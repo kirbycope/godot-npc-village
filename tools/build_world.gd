@@ -71,6 +71,10 @@ const PLAYER_SCENE: String = "res://addons/3d_player_controller/scenes/player.ts
 const VILLAGER_SCENE_DIR: String = "res://scenes/villagers"
 const WORLD_SCENE_PATH: String = "res://scenes/world.tscn"
 
+## The authored lines each group falls back to, shared with `tools/bake_voice_bank.gd`
+## so the baker can synthesize exactly the lines the game will ask for.
+const FALLBACK_LINES: String = "res://resources/fallback_lines.json"
+
 ## Which way a wall faces. A wall model spans 2 m along X with its outward face towards
 ## +Z, and turning it 90 degrees about Y turns that face towards +X.
 const FACE_SOUTH: float = 0.0
@@ -79,6 +83,12 @@ const FACE_NORTH: float = 180.0
 const FACE_WEST: float = 270.0
 
 var _rng: RandomNumberGenerator = RandomNumberGenerator.new()
+
+## Circles that nothing may be scattered into, as Vector3(x, z, radius). Filled in as the
+## village is built and handed to the grass and the trees afterwards, so foliage cannot
+## grow through a wall or up through the paving. Each building contributes a circle big
+## enough to cover its roof, which overhangs the walls by up to 2.7 m.
+var _exclusions: Array[Vector3] = []
 
 
 func _init() -> void:
@@ -107,13 +117,15 @@ func _build_world() -> bool:
 
 	var sun: DirectionalLight3D = _add_environment(world)
 	_add_ground(world)
+	# The clock and the weather come before the foliage: the weather drives the sun and
+	# publishes the wind, and the grass field wants a reference to it.
+	var clock: Node = _add_date_and_time(world)
+	_add_weather(world, clock, sun)
+	# Buildings and paving register their keep-out circles, so they must be placed before
+	# anything is scattered.
 	_add_buildings(world)
 	_add_square(world)
 	_add_nature(world)
-	# The clock and the weather are wired after the sun exists, because the weather
-	# system drives it.
-	var clock: Node = _add_date_and_time(world)
-	_add_weather(world, clock, sun)
 
 	var groups: Node3D = Node3D.new()
 	groups.name = "Conversations"
@@ -127,11 +139,7 @@ func _build_world() -> bool:
 			{"persona": "smith", "offset": Vector3(-1.1, 0.0, 0.2)},
 			{"persona": "baker", "offset": Vector3(1.1, 0.0, -0.2)},
 		],
-		[
-			"smith: Irons cost what they cost, Maud.",
-			"baker: And you'll have it, and a loaf besides.",
-			"smith: I've heard that before.",
-		])
+		_fallback_for(&"square"))
 
 	_add_group(world, groups, &"tavern", "the door of the Crooked Hart",
 		"the tax collector, expected before the harvest",
@@ -140,11 +148,7 @@ func _build_world() -> bool:
 			{"persona": "innkeeper", "offset": Vector3(-1.0, 0.0, 0.3)},
 			{"persona": "guard", "offset": Vector3(1.0, 0.0, -0.3)},
 		],
-		[
-			"innkeeper: You'll want the ledger straight before he comes.",
-			"guard: I want a good deal of things, Corwin.",
-			"innkeeper: Then have a drink while you want them.",
-		])
+		_fallback_for(&"tavern"))
 
 	_add_group(world, groups, &"chapel", "the chapel steps",
 		"what was left at the chapel door, and the disturbed graves",
@@ -153,11 +157,7 @@ func _build_world() -> bool:
 			{"persona": "elder", "offset": Vector3(-1.0, 0.0, 0.0)},
 			{"persona": "healer", "offset": Vector3(1.0, 0.0, 0.0)},
 		],
-		[
-			"elder: You needn't have come down the hill for this.",
-			"healer: I came for the air, Father.",
-			"elder: You came because you cannot leave it alone. Nor can I.",
-		])
+		_fallback_for(&"chapel"))
 
 	var hud: CanvasLayer = CanvasLayer.new()
 	hud.name = "SubtitleHUD"
@@ -166,6 +166,7 @@ func _build_world() -> bool:
 	hud.owner = world
 
 	_add_player(world)
+	_add_player_voice(world)
 
 	var packed: PackedScene = PackedScene.new()
 	if packed.pack(world) != OK:
@@ -366,6 +367,10 @@ func _building(
 		_place(parent, world, VILLAGE % "Corner_Exterior_Brick",
 			Vector3(corner.x, 0.0, corner.y), 0.0)
 
+	# A circle through the building's corners, plus the roof overhang.
+	var reach: float = sqrt(half_x * half_x + half_z * half_z) + 2.8
+	_exclusions.append(Vector3(centre.x, centre.y, reach))
+
 	var roof: String = "Roof_FlatTiles_%dx%d" % [size.x, size.y]
 	if ResourceLoader.exists(VILLAGE % roof):
 		_place(parent, world, VILLAGE % roof, Vector3(centre.x, STOREY, centre.y), 0.0)
@@ -426,6 +431,10 @@ func _add_square(world: Node3D) -> void:
 			_place(square, world, VILLAGE % "Floor_RoundRocks", spot,
 				90.0 * float(_rng.randi() % 4))
 
+	# The paving is a rectangle and this is a circle, so it over-reaches a little at the
+	# corners. Grass creeping onto the cobbles looks worse than a slightly bare verge.
+	_exclusions.append(Vector3(0.0, 2.0, 13.5))
+
 	_place(square, world, VILLAGE % "Prop_Wagon", Vector3(-7.5, 0.0, 7.5), 28.0)
 	_place(square, world, VILLAGE % "Prop_Crate", Vector3(7.4, 0.0, 7.2), 12.0)
 	_place(square, world, VILLAGE % "Prop_Crate", Vector3(8.1, 0.0, 8.1), -22.0)
@@ -444,6 +453,8 @@ func _add_nature(world: Node3D) -> void:
 		# Keep the mill road east to west clear so the village has a way in.
 		if absf(spot.z) < 6.0 and absf(spot.x) < 46.0:
 			continue
+		if _is_excluded(spot):
+			continue
 		var scene: String = TREE_SCENES[_rng.randi() % TREE_SCENES.size()]
 		var tree: Node3D = _instance(nature, world, scene, spot)
 		if tree == null:
@@ -453,19 +464,44 @@ func _add_nature(world: Node3D) -> void:
 		placed += 1
 	print("  %d trees" % placed)
 
-	var grass: PackedScene = load(GRASS_SCENE)
-	if grass == null:
+	_add_grass(nature, world)
+
+
+## Whether `spot` falls inside any of the keep-out circles.
+func _is_excluded(spot: Vector3) -> bool:
+	for zone: Vector3 in _exclusions:
+		if Vector2(spot.x - zone.x, spot.z - zone.y).length() < zone.z:
+			return true
+	return false
+
+
+## One grass field covering the whole village, told where it may not grow.
+##
+## The addon scatters its blades across `field_size` and skips anything inside a
+## circular exclusion zone, which is what makes a single large field workable: dropped in
+## blind it grows straight through walls and up through the paving, because the script
+## has no idea the buildings are there. Every building and the square registered a circle
+## as it was placed, so the field is handed the whole list and simply avoids them.
+func _add_grass(parent: Node3D, world: Node3D) -> void:
+	var scene: PackedScene = load(GRASS_SCENE)
+	if scene == null:
+		push_warning("The grass field scene is missing.")
 		return
-	# Grass sits out beyond the buildings. A field is large, and placed among them it
-	# grows straight through walls and paving.
-	for spot: Vector3 in [
-		Vector3(-34.0, 0.0, 24.0), Vector3(32.0, 0.0, -28.0),
-		Vector3(-30.0, 0.0, -30.0), Vector3(34.0, 0.0, 30.0),
-	]:
-		var field: Node3D = grass.instantiate()
-		field.position = spot
-		nature.add_child(field)
-		field.owner = world
+	var field: Node3D = scene.instantiate()
+	field.name = "GrassField"
+	field.position = Vector3.ZERO
+	parent.add_child(field)
+	field.owner = world
+	field.set("field_size", Vector2(150.0, 150.0))
+	field.set("instance_count", 14000)
+	field.set("min_scale", 0.65)
+	field.set("max_scale", 1.5)
+	field.set("cast_grass_shadows", false)
+	field.set("additional_exclusion_zones", _exclusions)
+	var weather: Node = world.get_node_or_null("WeatherFX")
+	if weather != null:
+		field.set("weather_fx", weather)
+	print("  grass field with %d keep-out circles" % _exclusions.size())
 
 
 # --------------------------------------------------------------------------------
@@ -710,6 +746,37 @@ func _add_player(world: Node3D) -> void:
 		player.add_to_group("player", true)
 	world.add_child(player)
 	player.owner = world
+
+
+## The authored fallback lines for one group, read from the shared data file so the
+## voice baker synthesizes exactly what the game will ask for.
+func _fallback_for(group_id: StringName) -> Array:
+	var file: FileAccess = FileAccess.open(FALLBACK_LINES, FileAccess.READ)
+	if file == null:
+		push_warning("Missing %s; that group will have no fallback." % FALLBACK_LINES)
+		return []
+	var reader: JSON = JSON.new()
+	var text: String = file.get_as_text()
+	file.close()
+	if reader.parse(text) != OK or typeof(reader.data) != TYPE_DICTIONARY:
+		push_warning("%s is not readable JSON." % FALLBACK_LINES)
+		return []
+	var groups: Variant = reader.data.get("groups", {})
+	if typeof(groups) != TYPE_DICTIONARY:
+		return []
+	var lines: Variant = groups.get(String(group_id), [])
+	return lines if typeof(lines) == TYPE_ARRAY else []
+
+
+## Push to talk. It lives on the world rather than under the player so it survives the
+## player being replaced, and finds whoever is in the "player" group at run time.
+func _add_player_voice(world: Node3D) -> void:
+	var voice: Node3D = Node3D.new()
+	voice.name = "PlayerVoice"
+	voice.set_script(load("res://scripts/player/player_voice.gd"))
+	voice.add_to_group("player_voice", true)
+	world.add_child(voice)
+	voice.owner = world
 
 
 # --------------------------------------------------------------------------------

@@ -52,6 +52,57 @@ The game runs without either key. With no Anthropic key the villagers fall back 
 authored lines on each group; with no ElevenLabs key they mime and you read the subtitles.
 Any line already in the voice cache still plays either way.
 
+## Talking to them
+
+Hold **T**, say something, and let go. The microphone opens while the key is down, the
+recording goes to ElevenLabs' `scribe_v1` for transcription, and whichever villager you
+are standing nearest within five yards answers first. The others in that group join in
+only if they have something of their own to add, which is the dialogue model's judgement
+rather than a rule in the code: the prompt tells it that a villager with nothing to say
+should stay out of it.
+
+Your line joins the transcript like any other turn, so they remember it and can refer
+back to it later in the conversation. Measured round trip from releasing the key to a
+villager speaking is about six seconds.
+
+Asked "Aldric, who was the rider you shod a horse for?", the blacksmith answered "He gave
+no name and I didn't ask for one. He paid, and his coin was older than me." Nobody wrote
+that line; it came from the two facts his persona holds about the rider.
+
+The subtitle bar shows what was heard before the reply arrives, which matters because a
+transcription can be wrong and the player needs to see that it was.
+
+## The voice bank
+
+`assets/voice/` holds spoken lines as ordinary mp3 files, committed to the repository
+alongside a `manifest.json` saying what each one says, who says it, in which voice, and
+how long it runs. Each file is named by the same hash `VoiceService` looks a line up
+by, so the bank is a drop-in for the runtime cache.
+
+`VoiceService` looks in four places, in order: the committed bank, the writable cache in
+`user://`, the remote bank, then the API. The first three need no key and no quota, and
+the bank is checked before the service even asks whether it is available, so a keyless
+build, an offline session and a test run all still hear every line that has been baked.
+
+The remote step is what makes a web build work. The clips are plain files in git, so
+raw.githubusercontent.com serves them directly: the export can leave the audio out of the
+`.pck` and stay small, and the page downloads each clip the first time it is needed and
+keeps it in browser storage. Point `VoiceService.remote_bank_base_url` at the branch you
+publish. Only the manifest has to ship in the build, and it is a few kilobytes.
+
+Build the bank with:
+
+```
+/Applications/Godot.app/Contents/MacOS/Godot --headless --path . -s tools/bake_voice_bank.gd
+    ... -- --dry-run        report what it would do, synthesize nothing
+    ... -- --promote-only   copy from the cache, never call out
+```
+
+It promotes anything the runtime cache has recorded the text of, synthesizes the authored
+fallback lines from `resources/fallback_lines.json` if they are missing, and adopts any
+clip already sitting in the bank rather than paying for it twice. Re-running it when
+nothing has changed costs nothing.
+
 ## Cost, and why the village is quiet until you arrive
 
 Both services are metered, and this was the single most important thing to get right.
@@ -88,13 +139,13 @@ voices, and `test_npc_persona.gd` fails the build if anyone is given a blocked o
 
 ## Tests
 
-The suite is 57 tests and runs entirely from recorded fixtures. It never makes a network
+The suite is 74 tests and runs entirely from recorded fixtures and committed clips. It never makes a network
 request, so it costs nothing and works in CI with no credentials. This is enforced rather
 than assumed: `RuntimeMode.is_offline()` detects GUT's runner on the command line and both
 paid services refuse to send anything when it returns true.
 
-Verified by running the full suite three times and checking the ElevenLabs quota before and
-after: 2436 characters both times.
+Verified by checking the ElevenLabs quota before and after a full run: 2922 characters
+both times, nothing spent. The microphone is never opened in a test either.
 
 ```
 & 'C:\Godot\godot.exe' --headless --path . -s addons/gut/gut_cmdln.gd -gdir=res://tests/unit,res://tests/integration -gexit
@@ -122,15 +173,20 @@ scripts/
   npc/
     npc.gd                     A villager: performs a turn, reports when it is done
     speaking_modifier.gd       Poses gestures the animation library has no clip for
+  player/
+    player_voice.gd            Push to talk, and who it reaches
   services/
     secrets.gd                 Key resolution, autoloaded as Secrets
-    voice_service.gd           ElevenLabs client and clip cache, autoloaded as VoiceService
+    voice_service.gd           Speech, the clip bank and the cache, autoloaded
+    speech_service.gd          The microphone and transcription, autoloaded
     runtime_mode.gd            Decides whether this process may use the network
   ui/
     subtitle_hud.gd            Screen-space subtitles
 tools/
   build_personas.gd            Generates resources/personas/*.tres
   build_world.gd               Generates scenes/villagers/*.tscn and scenes/world.tscn
+  build_audio_bus.gd           Generates the microphone bus layout
+  bake_voice_bank.gd           Builds assets/voice/ and its manifest
   inventory_assets.py          Surveys an asset library before anything is imported
   tinyify.py                   Downsizes and compresses textures to the 512 limit
   pull_addons.py               Vendors the addons listed in tools/addons.json

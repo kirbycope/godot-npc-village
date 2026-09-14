@@ -25,10 +25,20 @@ const BANK_DIR: String = "res://assets/voice"
 const MANIFEST: String = "res://assets/voice/manifest.json"
 const CACHE_DIR: String = "user://voice_cache"
 const CACHE_INDEX: String = "user://voice_cache/index.json"
-const WORLD_SCENE: String = "res://scenes/world.tscn"
+const FALLBACK_LINES: String = "res://resources/fallback_lines.json"
+const PERSONA_DIR: String = "res://resources/personas"
 
 ## Seconds to wait for one synthesis before giving up on it.
 const REQUEST_TIMEOUT: float = 30.0
+
+## The VoiceService autoload, fetched by node path rather than by name. Naming the
+## autoload in code would make this script depend on it at compile time, and a `-s`
+## script is compiled before the autoloads exist.
+var _voice: Node
+
+## Its constants, read from the script so the bank is written with exactly the model and
+## format the game will look for.
+var _voice_constants: Dictionary = {}
 
 var _dry_run: bool = false
 var _promote_only: bool = false
@@ -51,6 +61,13 @@ func _run() -> void:
 			_dry_run = true
 		elif argument == "--promote-only":
 			_promote_only = true
+
+	_voice = root.get_node_or_null("VoiceService")
+	if _voice == null:
+		printerr("VoiceService is not autoloaded; cannot compute cache keys.")
+		quit(1)
+		return
+	_voice_constants = _voice.get_script().get_script_constant_map()
 
 	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(BANK_DIR))
 	_load_manifest()
@@ -115,50 +132,71 @@ func _promote_cached_clips() -> void:
 			_failed += 1
 
 
-## Synthesizes the authored fallback lines, which are the lines a build with no API key
-## falls back to and therefore the ones that most need to exist without one.
+## Synthesizes the authored fallback lines.
+##
+## These are read from the shared data file rather than by instantiating the world scene.
+## Loading the world to read three arrays of strings means building fourteen thousand
+## blades of grass and two hundred trees first, which takes long enough to look like a
+## hang; the lines are data and belong in a data file that both tools read.
 func _bake_fallback_lines() -> void:
-	var scene: PackedScene = load(WORLD_SCENE)
-	if scene == null:
-		printerr("Could not load %s" % WORLD_SCENE)
+	var file: FileAccess = FileAccess.open(FALLBACK_LINES, FileAccess.READ)
+	if file == null:
+		printerr("Missing %s" % FALLBACK_LINES)
 		return
-	var world: Node = scene.instantiate()
+	var reader: JSON = JSON.new()
+	var text: String = file.get_as_text()
+	file.close()
+	if reader.parse(text) != OK or typeof(reader.data) != TYPE_DICTIONARY:
+		printerr("%s is not readable JSON." % FALLBACK_LINES)
+		return
 
-	for group: Node in world.find_children("*", "Node3D", true, false):
-		var lines: Variant = group.get("fallback_lines")
-		if typeof(lines) != TYPE_PACKED_STRING_ARRAY:
-			continue
-		var villagers: Variant = group.get("npcs")
-		if typeof(villagers) != TYPE_ARRAY:
-			continue
-		for line: String in lines:
+	var personas: Dictionary = _load_personas()
+	var groups: Variant = reader.data.get("groups", {})
+	if typeof(groups) != TYPE_DICTIONARY:
+		return
+	for group_id: String in groups:
+		for line: String in groups[group_id]:
 			var split: int = line.find(":")
 			if split <= 0:
 				continue
-			var persona_id: StringName = StringName(line.substr(0, split).strip_edges())
+			var persona_id: String = line.substr(0, split).strip_edges()
 			var spoken: String = line.substr(split + 1).strip_edges()
-			var persona: NPCPersona = _persona_for(villagers, persona_id)
-			if persona == null:
+			if not personas.has(persona_id):
+				push_warning("No persona '%s' for a fallback line." % persona_id)
 				continue
-			await _bake_one(persona, spoken)
-
-	world.free()
+			await _bake_one(personas[persona_id], spoken)
 
 
-func _persona_for(villagers: Array, persona_id: StringName) -> NPCPersona:
-	for villager: Variant in villagers:
-		if villager == null:
+## Every persona in the project, by id.
+func _load_personas() -> Dictionary:
+	var personas: Dictionary = {}
+	var directory: DirAccess = DirAccess.open(PERSONA_DIR)
+	if directory == null:
+		return personas
+	for file_name: String in directory.get_files():
+		if not file_name.ends_with(".tres"):
 			continue
-		var persona: Variant = villager.get("persona")
-		if persona is NPCPersona and (persona as NPCPersona).id == persona_id:
-			return persona
-	return null
+		var persona: NPCPersona = load("%s/%s" % [PERSONA_DIR, file_name])
+		if persona != null:
+			personas[String(persona.id)] = persona
+	return personas
 
 
 func _bake_one(persona: NPCPersona, text: String) -> void:
-	var key: String = VoiceService._cache_key(text, persona)
+	var key: String = _voice.call("_cache_key", text, persona)
 	if _manifest.has(key):
 		_skipped += 1
+		return
+
+	# The bank may already hold the file even if the manifest lost track of it, for
+	# instance after the manifest was deleted to rebuild it. Adopting the file costs
+	# nothing; re-synthesizing it costs characters for a clip already on disk.
+	var banked: String = "%s/%s.mp3" % [BANK_DIR, key]
+	if FileAccess.file_exists(banked):
+		print("  adopt    %-9s %s" % [persona.display_name, _preview(text)])
+		if not _dry_run:
+			_manifest[key] = _entry(persona, text, FileAccess.get_file_as_bytes(banked))
+		_promoted += 1
 		return
 
 	# It may already be in the writable cache even without an index entry.
@@ -166,7 +204,7 @@ func _bake_one(persona: NPCPersona, text: String) -> void:
 	if FileAccess.file_exists(cached):
 		print("  promote  %-9s %s" % [persona.display_name, _preview(text)])
 		if not _dry_run and _copy(cached, "%s/%s.mp3" % [BANK_DIR, key]):
-			_manifest[key] = _entry(persona, text, cached)
+			_manifest[key] = _entry(persona, text, FileAccess.get_file_as_bytes(cached))
 			_promoted += 1
 		return
 
@@ -193,7 +231,7 @@ func _bake_one(persona: NPCPersona, text: String) -> void:
 		return
 	file.store_buffer(bytes)
 	file.close()
-	_manifest[key] = _entry(persona, text, target)
+	_manifest[key] = _entry(persona, text, bytes)
 	_baked += 1
 	_characters += text.length()
 
@@ -202,7 +240,10 @@ func _bake_one(persona: NPCPersona, text: String) -> void:
 ## `VoiceService`, which would refuse: the service is budgeted for a play session, while
 ## baking is a deliberate one-off that should not be silently capped.
 func _synthesize(persona: NPCPersona, text: String) -> PackedByteArray:
-	var key: String = Secrets.get_key("elevenlabs")
+	# Fetched by path for the same reason as VoiceService: naming an autoload makes this
+	# script depend on it at compile time, before any autoload exists.
+	var secrets: Node = root.get_node_or_null("Secrets")
+	var key: String = str(secrets.call("get_key", "elevenlabs")) if secrets != null else ""
 	if key.is_empty():
 		printerr("No ElevenLabs key; cannot bake.")
 		return PackedByteArray()
@@ -218,7 +259,7 @@ func _synthesize(persona: NPCPersona, text: String) -> PackedByteArray:
 	])
 	var body: String = JSON.stringify({
 		"text": text,
-		"model_id": VoiceService.MODEL_ID,
+		"model_id": _voice_constants["MODEL_ID"],
 		"voice_settings": {
 			"stability": persona.voice_stability,
 			"similarity_boost": persona.voice_similarity,
@@ -227,8 +268,8 @@ func _synthesize(persona: NPCPersona, text: String) -> PackedByteArray:
 		},
 	})
 	var url: String = (
-		(VoiceService.ENDPOINT % persona.voice_id)
-		+ "?output_format=" + VoiceService.OUTPUT_FORMAT
+		(str(_voice_constants["ENDPOINT"]) % persona.voice_id)
+		+ "?output_format=" + str(_voice_constants["OUTPUT_FORMAT"])
 	)
 	if request.request(url, headers, HTTPClient.METHOD_POST, body) != OK:
 		request.queue_free()
@@ -242,9 +283,13 @@ func _synthesize(persona: NPCPersona, text: String) -> PackedByteArray:
 	return result[3]
 
 
-func _entry(persona: NPCPersona, text: String, path: String) -> Dictionary:
+## The clip's own metadata. The duration is decoded from the bytes rather than read off
+## a loaded resource: a file written to `res://` this instant has not been imported yet,
+## so loading it fails and every freshly baked clip would be recorded as zero seconds
+## long.
+func _entry(persona: NPCPersona, text: String, bytes: PackedByteArray) -> Dictionary:
 	var seconds: float = 0.0
-	var stream: AudioStream = load(path) if path.begins_with("res://") else null
+	var stream: AudioStreamMP3 = AudioStreamMP3.load_from_buffer(bytes)
 	if stream != null:
 		seconds = stream.get_length()
 	return {
@@ -252,7 +297,7 @@ func _entry(persona: NPCPersona, text: String, path: String) -> Dictionary:
 		"persona": String(persona.id),
 		"speaker": persona.display_name,
 		"voice_id": persona.voice_id,
-		"model_id": VoiceService.MODEL_ID,
+		"model_id": _voice_constants["MODEL_ID"],
 		"seconds": snappedf(seconds, 0.01),
 	}
 
@@ -287,8 +332,8 @@ func _write_manifest() -> void:
 			"Clips committed to this repository, named by the hash VoiceService looks "
 			+ "up. Built by tools/bake_voice_bank.gd; do not edit by hand."
 		),
-		"model_id": VoiceService.MODEL_ID,
-		"output_format": VoiceService.OUTPUT_FORMAT,
+		"model_id": _voice_constants["MODEL_ID"],
+		"output_format": _voice_constants["OUTPUT_FORMAT"],
 		"clips": ordered,
 	}
 	var file: FileAccess = FileAccess.open(MANIFEST, FileAccess.WRITE)

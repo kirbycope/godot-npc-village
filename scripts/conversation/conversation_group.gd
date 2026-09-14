@@ -226,7 +226,8 @@ func _situation() -> Dictionary:
 		situation["time_of_day"] = _describe_hour(int(clock.call("get_hour")))
 	var weather: Node = get_tree().get_first_node_in_group("weather_fx")
 	if weather != null:
-		var kind: Variant = weather.get("current_weather")
+		# The addon calls it `active_weather`; `current_weather` is only a signal argument.
+		var kind: Variant = weather.get("active_weather")
 		if kind != null:
 			situation["weather"] = _describe_weather(int(kind))
 	if weather != null:

@@ -25,7 +25,8 @@
       "name": "gut",
       "repo": "https://github.com/bitwes/Gut.git",
       "ref": "v9.6.1",
-      "_comment": "Test framework only. Pinned to a tag; never edited here, so it is never pushed back."
+      "_comment": "Test framework only, pinned to a tag. Third-party and never edited here, so push_addons skips it: there is nowhere for a change to go and a tag cannot be checked out as a branch.",
+      "push": false
     }
   ]
 }

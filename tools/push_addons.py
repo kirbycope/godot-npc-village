@@ -52,6 +52,14 @@ def main() -> int:
             sys.exit(f"Not in the manifest: {', '.join(sorted(unknown))}")
         addons = [a for a in addons if a["name"] in wanted]
 
+    # An addon marked "push": false is vendored from somebody else's repository. There is
+    # nowhere for a local change to go, and trying to check its pinned tag out as a branch
+    # fails outright, so it is skipped rather than reported as a failure every run.
+    read_only = [a["name"] for a in addons if a.get("push", True) is False]
+    if read_only and not args.names:
+        addons = [a for a in addons if a.get("push", True) is not False]
+        print(f"Skipping read-only: {', '.join(sorted(read_only))}")
+
     lock = load_lock()
     pushed = []
     blocked = False

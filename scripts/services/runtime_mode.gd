@@ -13,8 +13,13 @@ extends RefCounted
 ## The tests are therefore built entirely on recorded fixtures under `tests/fixtures/`,
 ## and this class is the backstop that keeps them honest.
 ##
-## Offline is chosen when either holds:
+## Offline is chosen when any of these hold:
 ##
+## - The build is running in a browser. A web build ships no keys, because anything
+##   inside a `.pck` is a download and therefore public, and asking a visitor to paste
+##   their own key into a web page is asking them to expose a credential. So the web
+##   build never calls out: it plays the committed voice bank and the villagers speak
+##   their authored opening lines, which is what that bank was baked for.
 ## - `NPC_VILLAGE_OFFLINE` is set to `1` in the environment, which is how a build
 ##   machine or a developer pins it deliberately.
 ## - GUT's command line runner is the script being run, which covers every test run
@@ -29,6 +34,8 @@ const GUT_RUNNER: String = "gut_cmdln.gd"
 
 ## Whether outbound requests are forbidden in this process.
 static func is_offline() -> bool:
+	if OS.has_feature("web"):
+		return true
 	if OS.get_environment(OFFLINE_ENV) == "1":
 		return true
 	return is_test_run()

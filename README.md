@@ -181,29 +181,21 @@ head, because a pause with nothing to look at reads as the game having stopped.
 
 ## Does it work in a browser?
 
-Yes, with one caveat and one thing unverified.
+It runs, and it is deliberately offline.
 
-Both APIs accept browser requests. ElevenLabs answers from any origin. The Claude API
-requires `anthropic-dangerous-direct-browser-access`, which the director adds when
-`OS.has_feature("web")`; the preflight was checked against `api.anthropic.com` and it
-allows that header from a Pages origin.
+The web build ships no keys, and it is not asked to borrow any. Anything inside a `.pck`
+is a download and therefore public, so a key baked into the build would be spending
+somebody else's quota within the hour; and a page that asks a visitor to paste their own
+key is asking them to hand a live credential to whatever else is running on that page.
+Neither is worth doing for a proof of concept, so `RuntimeMode.is_offline()` returns
+`true` whenever `OS.has_feature("web")`, and the three services that cost money check it
+before their first request.
 
-**The web build ships no keys**, because anything in a `.pck` is a download and therefore
-public, and every visitor would be spending somebody else's quota. So a visitor gets the
-village and the committed voice bank: the villagers speak their authored opening lines
-aloud, and fall quiet after them. That is what the bank is for.
-
-A player who wants the rest is asked once, by `KeyPrompt`, to paste their own keys. They
-are held in memory and, if the player asks, in `user://secrets.cfg`, which on the web is
-that origin's own browser storage. Entering them rearms all three services, so it takes
-effect without a reload. Anthropic calls direct browser access dangerous for a good
-reason and the prompt says so plainly: a key typed into a web page can be read by
-anything running on that page, so use one you can rotate afterwards.
-
-**Unverified:** whether the microphone works in Godot's web export. It needs the browser's
-`getUserMedia`, which the page will prompt for, and this has only been tested on desktop.
-If it does not work, push to talk is the one feature that will not survive the trip; the
-conversations, the voices and the villagers all will.
+What a visitor gets is the village and the committed voice bank. The villagers speak
+their authored opening lines aloud, in their own voices, and then fall quiet. That is
+what the bank was baked for, and it is why the clips are in the repository rather than
+only in `user://`. Push to talk and live conversation are desktop features, where the
+keys come from `.env` and stay on the machine that owns them.
 
 ## Cost, and why the village is quiet until you arrive
 
@@ -350,12 +342,13 @@ genuinely should shrink with distance.
 - The village buildings are still the Kenney Fantasy Town Kit. Quaternius's Medieval
   Village MegaKit is in the staging area and is denser and better matched to the villagers;
   swapping it in means re-measuring the module grid in `build_world.gd`.
-- The API keys live in the client. On desktop they come from `.env`; on the web the
-  player supplies their own and they stay in that browser. Neither is how a real product
-  would do it: that wants a relay holding the keys server-side, with the game talking to
-  the relay.
-- Whether the microphone works in Godot's web export is untested. Everything else is
-  verified in a browser.
+- The API keys live in the client. On desktop they come from `.env`, which is fine for a
+  proof of concept and is not how a real product would do it: that wants a relay holding
+  the keys server-side, with the game talking to the relay. Until there is one, the web
+  build stays offline.
+- Push to talk and live conversation are desktop only, because the web build is offline
+  by design. Whether Godot's web export can open a microphone at all is therefore
+  untested and moot.
 
 ## Third-party assets
 

@@ -71,8 +71,7 @@ const PLAYER_SCENE: String = "res://addons/3d_player_controller/scenes/player.ts
 const VILLAGER_SCENE_DIR: String = "res://scenes/villagers"
 const WORLD_SCENE_PATH: String = "res://scenes/world.tscn"
 
-## The authored lines each group falls back to, shared with `tools/bake_voice_bank.gd`
-## so the baker can synthesize exactly the lines the game will ask for.
+## Lines a group falls back to when the model is unreachable.
 const FALLBACK_LINES: String = "res://resources/fallback_lines.json"
 
 ## Which way a wall faces. A wall model spans 2 m along X with its outward face towards
@@ -808,18 +807,17 @@ func _add_player(world: Node3D) -> void:
 	player.owner = world
 
 
-## The authored fallback lines for one group, read from the shared data file so the
-## voice baker synthesizes exactly what the game will ask for.
+## The lines a group falls back to when the model cannot be reached, from
+## `resources/fallback_lines.json`. The opening lines are not here: those live on each
+## villager's own persona, where they are written by hand.
 func _fallback_for(group_id: StringName) -> Array:
 	var file: FileAccess = FileAccess.open(FALLBACK_LINES, FileAccess.READ)
 	if file == null:
-		push_warning("Missing %s; that group will have no fallback." % FALLBACK_LINES)
 		return []
 	var reader: JSON = JSON.new()
 	var text: String = file.get_as_text()
 	file.close()
 	if reader.parse(text) != OK or typeof(reader.data) != TYPE_DICTIONARY:
-		push_warning("%s is not readable JSON." % FALLBACK_LINES)
 		return []
 	var groups: Variant = reader.data.get("groups", {})
 	if typeof(groups) != TYPE_DICTIONARY:

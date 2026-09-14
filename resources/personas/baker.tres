@@ -7,6 +7,7 @@
 script = ExtResource("2_4wyy5")
 id = &"baker"
 display_name = "Maud"
+opening_line = ""
 occupation = "baker"
 biography = "Maud runs the bakery on the square and hears everything, because everyone comes to her eventually. She talks quickly, changes subject when cornered, and is the first to know any piece of news in Ashmoor. She is fonder of these people than she lets on."
 traits = PackedStringArray("nosy", "quick", "deflects with jokes", "genuinely kind")

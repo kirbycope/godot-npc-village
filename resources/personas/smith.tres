@@ -7,6 +7,7 @@
 script = ExtResource("2_6bqa8")
 id = &"smith"
 display_name = "Aldric"
+opening_line = ""
 occupation = "blacksmith"
 biography = "Aldric has kept the Ashmoor forge for nineteen years and inherited it from his father, who was better at it. He speaks in short sentences, dislikes being interrupted, and measures people by whether they pay on time. He is not unkind, but he is tired."
 traits = PackedStringArray("gruff", "literal", "proud of his work", "short with fools")

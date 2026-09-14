@@ -40,8 +40,16 @@ var _voice: Node
 ## format the game will look for.
 var _voice_constants: Dictionary = {}
 
+## Keys of the clips the authored dialogue asks for. Anything in the bank outside this
+## set is a leftover and is removed when pruning.
+var _authored: Dictionary = {}
+
 var _dry_run: bool = false
 var _promote_only: bool = false
+
+## By default the bank is exactly the authored dialogue and nothing else. Pass
+## --keep-unauthored to hold on to clips captured from generated conversation.
+var _keep_unauthored: bool = false
 var _manifest: Dictionary = {}
 var _baked: int = 0
 var _promoted: int = 0
@@ -61,6 +69,8 @@ func _run() -> void:
 			_dry_run = true
 		elif argument == "--promote-only":
 			_promote_only = true
+		elif argument == "--keep-unauthored":
+			_keep_unauthored = true
 
 	_voice = root.get_node_or_null("VoiceService")
 	if _voice == null:
@@ -72,8 +82,10 @@ func _run() -> void:
 	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(BANK_DIR))
 	_load_manifest()
 
+	_collect_authored()
 	_promote_cached_clips()
 	await _bake_fallback_lines()
+	_prune()
 
 	_write_manifest()
 	print("\n%d promoted, %d synthesized, %d already present, %d failed (%d characters)" % [
@@ -94,6 +106,23 @@ func _load_manifest() -> void:
 	file.close()
 	if reader.parse(text) == OK and typeof(reader.data) == TYPE_DICTIONARY:
 		_manifest = reader.data.get("clips", {})
+
+
+## Works out the cache key of every hand-written line, before anything is copied.
+##
+## Hand-written means the `opening_line` on each persona and anything in the fallback
+## file. Those are fixed text: they recur every session, so a clip of one is worth
+## carrying in the repository forever. A line the model invented is different every time
+## and its clip is dead weight the moment it is written, which is why the bank is pruned
+## down to this set.
+func _collect_authored() -> void:
+	for persona: NPCPersona in _load_personas().values():
+		var line: String = persona.opening_line.strip_edges()
+		if not line.is_empty():
+			_authored[_voice.call("_cache_key", line, persona)] = true
+	for pair: Array in _fallback_pairs():
+		_authored[_voice.call("_cache_key", pair[1], pair[0])] = true
+	print("Hand-written lines: %d" % _authored.size())
 
 
 ## Copies everything the writable cache knows the text of into the bank. Clips cached
@@ -117,6 +146,10 @@ func _promote_cached_clips() -> void:
 		if _manifest.has(key):
 			_skipped += 1
 			continue
+		if not _keep_unauthored and not _authored.has(key):
+			# A line the model happened to say once. It will never be said again in
+			# exactly those words, so the clip would be dead weight in the repository.
+			continue
 		var source: String = "%s/%s.mp3" % [CACHE_DIR, key]
 		if not FileAccess.file_exists(source):
 			continue
@@ -132,39 +165,47 @@ func _promote_cached_clips() -> void:
 			_failed += 1
 
 
-## Synthesizes the authored fallback lines.
-##
-## These are read from the shared data file rather than by instantiating the world scene.
-## Loading the world to read three arrays of strings means building fourteen thousand
-## blades of grass and two hundred trees first, which takes long enough to look like a
-## hang; the lines are data and belong in a data file that both tools read.
+## Synthesizes every hand-written line that is not already in the bank.
 func _bake_fallback_lines() -> void:
+	var personas: Dictionary = _load_personas()
+	var ids: Array = personas.keys()
+	ids.sort()
+	for persona_id: String in ids:
+		var persona: NPCPersona = personas[persona_id]
+		var line: String = persona.opening_line.strip_edges()
+		if not line.is_empty():
+			await _bake_one(persona, line)
+	for pair: Array in _fallback_pairs():
+		await _bake_one(pair[0], pair[1])
+
+
+## Every fallback line as [persona, text].
+func _fallback_pairs() -> Array:
+	var pairs: Array = []
 	var file: FileAccess = FileAccess.open(FALLBACK_LINES, FileAccess.READ)
 	if file == null:
-		printerr("Missing %s" % FALLBACK_LINES)
-		return
+		return pairs
 	var reader: JSON = JSON.new()
 	var text: String = file.get_as_text()
 	file.close()
 	if reader.parse(text) != OK or typeof(reader.data) != TYPE_DICTIONARY:
-		printerr("%s is not readable JSON." % FALLBACK_LINES)
-		return
-
+		return pairs
 	var personas: Dictionary = _load_personas()
 	var groups: Variant = reader.data.get("groups", {})
 	if typeof(groups) != TYPE_DICTIONARY:
-		return
+		return pairs
 	for group_id: String in groups:
-		for line: String in groups[group_id]:
+		var lines: Variant = groups[group_id]
+		if typeof(lines) != TYPE_ARRAY:
+			continue
+		for line: String in lines:
 			var split: int = line.find(":")
 			if split <= 0:
 				continue
 			var persona_id: String = line.substr(0, split).strip_edges()
-			var spoken: String = line.substr(split + 1).strip_edges()
-			if not personas.has(persona_id):
-				push_warning("No persona '%s' for a fallback line." % persona_id)
-				continue
-			await _bake_one(personas[persona_id], spoken)
+			if personas.has(persona_id):
+				pairs.append([personas[persona_id], line.substr(split + 1).strip_edges()])
+	return pairs
 
 
 ## Every persona in the project, by id.
@@ -348,3 +389,33 @@ func _write_manifest() -> void:
 func _preview(text: String) -> String:
 	var flat: String = text.replace("\n", " ")
 	return flat if flat.length() <= 58 else flat.substr(0, 55) + "..."
+
+
+## Removes anything from the bank that the authored dialogue does not ask for.
+##
+## The bank fills up with clips captured from whatever the model happened to say while
+## the game was running, and those lines never recur: a generated sentence is different
+## every time, so the clip is dead weight in the repository the moment it is written.
+## What belongs here permanently is the authored dialogue, which is fixed, recurs every
+## session, and is the only thing a keyless build can rely on.
+func _prune() -> void:
+	if _keep_unauthored:
+		return
+	var stale: Array[String] = []
+	for key: String in _manifest:
+		if not _authored.has(key):
+			stale.append(key)
+	if stale.is_empty():
+		return
+	for key: String in stale:
+		var entry: Dictionary = _manifest[key]
+		print("  remove   %-9s %s" % [
+			entry.get("speaker", "?"), _preview(str(entry.get("text", ""))),
+		])
+		if _dry_run:
+			continue
+		_manifest.erase(key)
+		var path: String = "%s/%s.mp3" % [BANK_DIR, key]
+		DirAccess.remove_absolute(ProjectSettings.globalize_path(path))
+		DirAccess.remove_absolute(ProjectSettings.globalize_path(path + ".import"))
+	print("  %d unauthored clip(s) removed" % stale.size())

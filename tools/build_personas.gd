@@ -231,7 +231,14 @@ func _init() -> void:
 			relations[other] = entry["relations"][other]
 		persona.relationships = relations
 
+		# Anything written by hand on the existing resource is read back and kept. The
+		# opening line is authored on the `.tres`, so regenerating the cast must not
+		# throw it away.
 		var path: String = "%s/%s.tres" % [OUTPUT_DIR, entry["id"]]
+		if ResourceLoader.exists(path):
+			var existing: NPCPersona = load(path)
+			if existing != null:
+				persona.opening_line = existing.opening_line
 		var error: Error = ResourceSaver.save(persona, path)
 		if error != OK:
 			printerr("Could not write %s: %s" % [path, error_string(error)])

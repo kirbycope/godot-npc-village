@@ -1,20 +1,8 @@
 {
-  "_comment": "Lines the villagers fall back to when the dialogue model is unreachable. One source of truth: tools/build_world.gd puts them on each ConversationGroup, and tools/bake_voice_bank.gd synthesizes them into the committed voice bank. They are the lines a build with no API key relies on, so they are the ones most worth having permanently.",
+  "_comment": "What a group says when the dialogue model cannot be reached at all. Not the opening: each villager's first line is written on their own resources/personas/<id>.tres. Entries are 'persona_id: line'.",
   "groups": {
-    "square": [
-      "smith: Irons cost what they cost, Maud.",
-      "baker: And you'll have it, and a loaf besides.",
-      "smith: I've heard that before."
-    ],
-    "tavern": [
-      "innkeeper: You'll want the ledger straight before he comes.",
-      "guard: I want a good deal of things, Corwin.",
-      "innkeeper: Then have a drink while you want them."
-    ],
-    "chapel": [
-      "elder: You needn't have come down the hill for this.",
-      "healer: I came for the air, Father.",
-      "elder: You came because you cannot leave it alone. Nor can I."
-    ]
+    "square": [],
+    "tavern": [],
+    "chapel": []
   }
 }

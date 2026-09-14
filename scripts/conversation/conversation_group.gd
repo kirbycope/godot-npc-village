@@ -113,6 +113,15 @@ var _addressed: StringName = &""
 ## Lines spoken by each villager since this interaction began.
 var _turns_taken: Dictionary[StringName, int] = {}
 
+## Whether the authored opening has been performed yet.
+var _opening_spent: bool = false
+
+## True while the authored opening is playing. Its turns do not count against anyone's
+## allowance: they are written by hand and already paid for in the voice bank, so
+## charging them to the budget would use the whole interaction up before the model got
+## a word in, which is the opposite of what an opening is for.
+var _performing_opening: bool = false
+
 
 func _ready() -> void:
 	_cooldown_timer = Timer.new()
@@ -146,6 +155,7 @@ func transcript() -> Array[ConversationTurn]:
 func interrupt() -> void:
 	_pending.clear()
 	_prefetched.clear()
+	_performing_opening = false
 	if is_instance_valid(_speaker):
 		_speaker.stop_speaking()
 	_speaker = null
@@ -190,6 +200,19 @@ func _restart_for_changed_situation() -> void:
 func _request_beat() -> void:
 	if _waiting_for_beat or npcs.size() < 2 or not _prefetched.is_empty():
 		return
+
+	# The seed. Each villager's hand-written opening line, in the order they stand, said
+	# once before the model is asked for anything. It goes into the transcript, so the
+	# model continues from it.
+	if not _opening_spent and _player_line.is_empty():
+		_opening_spent = true
+		_pending = _opening_beat()
+		if not _pending.is_empty():
+			_performing_opening = true
+			_running = true
+			beat_started.emit(self)
+			_advance()
+			return
 	if converse_only_when_player_present and not _player_present and _player_line.is_empty():
 		return
 	if not _anyone_may_speak():
@@ -248,6 +271,24 @@ func _anyone_may_speak() -> bool:
 	return false
 
 
+## Whether anyone would still have a line left once the beat in hand has finished.
+##
+## Prefetching asks the model for the next beat while the current one is still playing,
+## which hides the round trip. Asking on the strength of the allowance as it stands now
+## buys a beat that the allowance will have run out for by the time it could be played,
+## so it is written, paid for, and thrown away: one wasted request per interaction.
+func _anyone_may_speak_after_pending() -> bool:
+	var projected: Dictionary[StringName, int] = _turns_taken.duplicate()
+	for turn: ConversationTurn in _pending:
+		projected[turn.speaker] = projected.get(turn.speaker, 0) + 1
+	for npc: NPC in npcs:
+		if not is_instance_valid(npc):
+			continue
+		if projected.get(npc.persona_id(), 0) < max_turns_per_villager:
+			return true
+	return false
+
+
 ## What the director needs to know about this moment. Time and weather are read from
 ## the addons when they are present, so the villagers comment on real conditions.
 func _situation() -> Dictionary:
@@ -256,6 +297,19 @@ func _situation() -> Dictionary:
 		"player_present": _player_present,
 		"topic": topic,
 	}
+	# How many lines each villager has left. The director writes a beat that fits inside
+	# this rather than the group cutting one short afterwards: a beat is a whole thought,
+	# and dropping its last turns throws away the half where it lands. An exchange that
+	# ended on "his money was good" instead of the reply it was setting up was what made
+	# the dialogue read as nonsense.
+	var allowance: Dictionary = {}
+	for npc: NPC in npcs:
+		if is_instance_valid(npc) and npc.persona != null:
+			allowance[npc.persona.display_name] = maxi(
+				0, max_turns_per_villager - _turns_taken.get(npc.persona_id(), 0)
+			)
+	situation["allowance"] = allowance
+
 	if not _player_line.is_empty():
 		situation["player_line"] = _player_line
 		var speaker: NPC = _find_npc(_addressed)
@@ -355,10 +409,24 @@ func _on_beat_failed(group_id_in: StringName, reason: String) -> void:
 	_advance()
 
 
-## Turns `fallback_lines` into a beat so the village is never completely silent.
-func _build_fallback_beat() -> Array[ConversationTurn]:
+## The villagers' authored opening lines, in the order they stand. Anyone whose persona
+## has no opening line written simply does not speak here.
+func _opening_beat() -> Array[ConversationTurn]:
 	var turns: Array[ConversationTurn] = []
-	for entry: String in fallback_lines:
+	for npc: NPC in npcs:
+		if not is_instance_valid(npc) or npc.persona == null:
+			continue
+		var line: String = npc.persona.opening_line.strip_edges()
+		if line.is_empty():
+			continue
+		turns.append(ConversationTurn.new(npc.persona_id(), line))
+	return turns
+
+
+## Turns "persona_id: line" entries into a beat, in the order they were written.
+func _parse_lines(lines: PackedStringArray) -> Array[ConversationTurn]:
+	var turns: Array[ConversationTurn] = []
+	for entry: String in lines:
 		var split: int = entry.find(":")
 		if split <= 0:
 			continue
@@ -366,6 +434,12 @@ func _build_fallback_beat() -> Array[ConversationTurn]:
 			StringName(entry.substr(0, split).strip_edges()),
 			entry.substr(split + 1).strip_edges(),
 		))
+	return turns
+
+
+## Turns `fallback_lines` into a beat so the village is never completely silent.
+func _build_fallback_beat() -> Array[ConversationTurn]:
+	var turns: Array[ConversationTurn] = _parse_lines(fallback_lines)
 	turns.shuffle()
 	return turns.slice(0, mini(3, turns.size()))
 
@@ -377,6 +451,7 @@ func _advance() -> void:
 			_pending = _prefetched
 			_prefetched = []
 		else:
+			_performing_opening = false
 			_running = false
 			_speaker = null
 			beat_ended.emit(self)
@@ -384,11 +459,6 @@ func _advance() -> void:
 			return
 
 	var turn: ConversationTurn = _pending.pop_front()
-	if not _may_speak(turn.speaker):
-		# This villager has used their allowance. Drop the turn rather than the whole
-		# beat: someone else in it may still have something to say.
-		_advance()
-		return
 	var npc: NPC = _find_npc(turn.speaker)
 	if npc == null:
 		# The model named someone who is not here. Skip the turn rather than stall.
@@ -400,12 +470,13 @@ func _advance() -> void:
 		prefetch_at_turns_remaining > 0
 		and _pending.size() <= prefetch_at_turns_remaining
 		and _prefetched.is_empty()
-		and _anyone_may_speak()
+		and _anyone_may_speak_after_pending()
 	):
 		_request_beat()
 
 	_transcript.append(turn)
-	_turns_taken[turn.speaker] = _turns_taken.get(turn.speaker, 0) + 1
+	if not _performing_opening:
+		_turns_taken[turn.speaker] = _turns_taken.get(turn.speaker, 0) + 1
 	_speaker = npc
 	_point_listeners_at(npc)
 	turn_started.emit(npc, turn)

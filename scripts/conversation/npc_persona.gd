@@ -34,6 +34,21 @@ extends Resource
 ## `&"baker": "Owes him money and resents being reminded."`
 @export var relationships: Dictionary[StringName, String] = {}
 
+@export_group("Dialogue")
+
+## The first thing this villager says, written by hand.
+##
+## This is the seed. The first time the player walks up, each villager in the group says
+## their opening line in turn, before the dialogue model is asked for anything; the model
+## then continues from them, so whatever voice is written here is the voice it answers
+## in. Leave it empty and that villager simply has no opening line.
+##
+## Edit this on the `.tres` in `resources/personas/`. `tools/build_personas.gd` reads
+## what is already there and preserves it, so regenerating the cast does not overwrite
+## anything written by hand.
+@export_multiline var opening_line: String = ""
+
+
 @export_group("Appearance")
 
 ## The villager's body and clothes. One of the Quaternius fantasy outfits under

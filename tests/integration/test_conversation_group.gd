@@ -136,21 +136,66 @@ func _greedy_beat() -> Array[ConversationTurn]:
 	return turns
 
 
-func test_a_villager_may_only_speak_twice_per_interaction() -> void:
-	# The cost control. Without it a group standing next to the player talks
-	# indefinitely, and every line is a request to write it and characters to speak it.
+func test_a_delivered_beat_is_performed_whole() -> void:
+	# The allowance constrains what is asked for, never what is played. Dropping turns
+	# out of a finished beat threw away the half it was building towards and left
+	# exchanges ending on a line that was obviously waiting for a reply.
 	_group.begin_interaction()
 	ConversationDirector.beat_ready.emit(&"test_group", _greedy_beat())
 	await wait_frames(2)
-	# Let the beat run itself out; each line falls back to its estimated duration here,
-	# because none of them are in the voice cache.
-	await wait_seconds(6.0)
+	await wait_seconds(7.0)
 
 	var spoken: int = 0
 	for turn: ConversationTurn in _group.transcript():
 		if turn.speaker == &"baker":
 			spoken += 1
-	assert_eq(spoken, _group.max_turns_per_villager, "the baker should be cut off at two")
+	assert_eq(spoken, 5, "every turn of a delivered beat should be performed")
+
+
+func test_the_allowance_is_offered_to_the_director() -> void:
+	# How the limit is actually enforced: the model is told the room it has and writes a
+	# beat that finishes inside it.
+	_group.begin_interaction()
+	var situation: Dictionary = _group._situation()
+	assert_true(situation.has("allowance"), "the situation should carry the allowance")
+	var allowance: Dictionary = situation["allowance"]
+	assert_eq(allowance.size(), 2, "both villagers should be listed")
+	for who: String in allowance:
+		assert_eq(
+			int(allowance[who]), _group.max_turns_per_villager,
+			"%s should start an interaction with a full allowance" % who,
+		)
+
+
+func test_the_allowance_shrinks_as_they_speak() -> void:
+	_group.begin_interaction()
+	ConversationDirector.beat_ready.emit(&"test_group", _beat())
+	await wait_frames(2)
+	await wait_seconds(5.0)
+
+	var allowance: Dictionary = _group._situation()["allowance"]
+	assert_lt(
+		int(allowance[_baker.persona.display_name]), _group.max_turns_per_villager,
+		"the baker has spoken, so she should have less room left",
+	)
+
+
+func test_a_spent_group_asks_for_nothing_more() -> void:
+	_group.begin_interaction()
+	var spend_everyone: Array[ConversationTurn] = []
+	for i: int in _group.max_turns_per_villager:
+		spend_everyone.append(ConversationTurn.new(&"baker", "Baker %d." % i))
+		spend_everyone.append(ConversationTurn.new(&"smith", "Smith %d." % i))
+	ConversationDirector.beat_ready.emit(&"test_group", spend_everyone)
+	await wait_frames(2)
+	await wait_seconds(7.0)
+	assert_false(_group._anyone_may_speak(), "everyone should be spent")
+
+	# The group must go quiet rather than keep buying beats nobody may perform.
+	watch_signals(_group)
+	_group._request_beat()
+	await wait_frames(2)
+	assert_signal_not_emitted(_group, "beat_started")
 
 
 func test_speaking_to_them_gives_the_allowance_back() -> void:

@@ -79,7 +79,12 @@ Rules:
 - Avoid modern idiom, but do not write in mock-archaic English either.
 - If the player is standing with them, they may acknowledge the player or pointedly \
 not acknowledge them, as their character would.
-- A beat is 3 to 6 turns. End it somewhere that could be picked up again.
+- A beat must be complete in the number of turns you are given. You are told how many \
+lines each villager has left; use no more than that, and write an exchange that lands \
+inside it. Do not set something up you have no room to pay off, and do not end on a line \
+that is obviously waiting for a reply you cannot write.
+- Within that, fewer turns is fine. Two good lines beat four thin ones.
+- End somewhere that could be picked up again, but not mid-thought.
 
 When the player has just spoken aloud, the beat is a reply to them:
 - The villager they addressed answers first, in character. That villager may refuse to \
@@ -293,6 +298,28 @@ func _describe_situation(situation: Dictionary) -> String:
 		lines.append("The player is not within earshot.")
 	if situation.has("topic") and not str(situation["topic"]).is_empty():
 		lines.append("Something on their minds: %s" % situation["topic"])
+
+	# The hard limit on the beat's shape. Given before the model writes rather than
+	# enforced after, because a beat cut short loses the turns it was building towards.
+	if situation.has("allowance") and typeof(situation["allowance"]) == TYPE_DICTIONARY:
+		var allowance: Dictionary = situation["allowance"]
+		if not allowance.is_empty():
+			var names: Array = allowance.keys()
+			names.sort()
+			var parts: PackedStringArray = PackedStringArray()
+			var total: int = 0
+			for who: String in names:
+				var left: int = int(allowance[who])
+				total += left
+				parts.append("%s may speak %d more time%s" % [
+					who, left, "" if left == 1 else "s",
+				])
+			lines.append("")
+			lines.append("Room left in this beat: %s." % ", ".join(parts))
+			lines.append(
+				"That is %d line%s in total. Write an exchange that is finished within it."
+				% [total, "" if total == 1 else "s"]
+			)
 	return "\n".join(lines)
 
 

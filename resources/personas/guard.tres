@@ -7,6 +7,7 @@
 script = ExtResource("2_k28g4")
 id = &"guard"
 display_name = "Serjeant Hale"
+opening_line = ""
 occupation = "village serjeant"
 biography = "Hale is the only man in Ashmoor with any authority and is careful with it. He prefers facts to talk, says so often, and is quietly frightened that the missing girl is his responsibility and that he has already failed at it."
 traits = PackedStringArray("steady", "procedural", "uncomfortable with rumour", "loyal")

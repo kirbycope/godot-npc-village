@@ -20,6 +20,28 @@ const LINGER: float = 0.7
 ## Seconds the panel takes to fade in and out.
 const FADE: float = 0.18
 
+## How wide the panel may grow, as a share of the viewport.
+##
+## The stretch mode is `canvas_items` with a `keep` aspect, so the logical viewport
+## stays 1280 by 800 whatever the window does and the panel holds the same share of
+## the picture on a phone, a laptop and a browser filling a large display. That is why
+## a size that looked reasonable while the game ran in a small editor window read as
+## enormous in the web build on a big screen: it was never scaling wrongly, it was
+## simply taking half the width everywhere. Sizing from the viewport rather than from
+## a fixed pixel count keeps it honest if the aspect ever changes.
+const WIDTH_SHARE: float = 0.40
+
+## Bounds on that width, so the panel neither stretches into a banner on a wide
+## viewport nor squeezes a line into a column on a narrow one.
+const WIDTH_MIN: float = 300.0
+const WIDTH_MAX: float = 520.0
+
+## Type sizes at the 800 pixel design height, scaled with the viewport and capped so
+## they never grow past what was designed.
+const SPEAKER_FONT: int = 13
+const LINE_FONT: int = 18
+const DESIGN_HEIGHT: float = 800.0
+
 var _panel: PanelContainer
 var _speaker_label: Label
 var _line_label: Label
@@ -37,11 +59,18 @@ func _ready() -> void:
 
 ## Wires up every villager currently in the scene.
 func _connect_villagers() -> void:
+	# Deferred, so by the time this runs the HUD may have left the tree, and a scene
+	# built in code may have no `current_scene` at all.
+	if not is_inside_tree():
+		return
 	for node: Node in get_tree().get_nodes_in_group("villagers"):
 		_connect_one(node)
 	# The group is the reliable path, but fall back to a type sweep so a villager that
 	# was never added to it still gets subtitled.
-	for node: Node in get_tree().current_scene.find_children("*", "CharacterBody3D", true, false):
+	var scene: Node = get_tree().current_scene
+	if scene == null:
+		return
+	for node: Node in scene.find_children("*", "CharacterBody3D", true, false):
 		if node is NPC:
 			_connect_one(node)
 
@@ -50,6 +79,8 @@ func _connect_villagers() -> void:
 ## line that was understood is played back to them. Without that the player cannot tell
 ## whether they were heard, whether they were misheard, or whether nothing happened.
 func _connect_player_voice() -> void:
+	if not is_inside_tree():
+		return
 	var voice: Node = get_tree().get_first_node_in_group("player_voice")
 	if voice == null:
 		return
@@ -98,9 +129,9 @@ func _build() -> void:
 	# panel then lays out just below the viewport where nothing is ever drawn.
 	var margin: MarginContainer = MarginContainer.new()
 	margin.set_anchors_preset(Control.PRESET_FULL_RECT)
-	margin.add_theme_constant_override("margin_bottom", 48)
-	margin.add_theme_constant_override("margin_left", 64)
-	margin.add_theme_constant_override("margin_right", 64)
+	margin.add_theme_constant_override("margin_bottom", 40)
+	margin.add_theme_constant_override("margin_left", 56)
+	margin.add_theme_constant_override("margin_right", 56)
 	margin.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(margin)
 
@@ -118,10 +149,10 @@ func _build() -> void:
 	_panel.modulate = Color(1.0, 1.0, 1.0, 0.0)
 	var style: StyleBoxFlat = StyleBoxFlat.new()
 	style.bg_color = Color(0.04, 0.04, 0.05, 0.72)
-	style.content_margin_left = 22.0
-	style.content_margin_right = 22.0
-	style.content_margin_top = 12.0
-	style.content_margin_bottom = 14.0
+	style.content_margin_left = 16.0
+	style.content_margin_right = 16.0
+	style.content_margin_top = 9.0
+	style.content_margin_bottom = 10.0
 	style.corner_radius_top_left = 4
 	style.corner_radius_top_right = 4
 	style.corner_radius_bottom_left = 4
@@ -136,17 +167,39 @@ func _build() -> void:
 
 	_speaker_label = Label.new()
 	_speaker_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_speaker_label.add_theme_font_size_override("font_size", 15)
 	_speaker_label.add_theme_color_override("font_color", Color(0.80, 0.72, 0.52))
 	column.add_child(_speaker_label)
 
 	_line_label = Label.new()
 	_line_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_line_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_line_label.custom_minimum_size = Vector2(680.0, 0.0)
-	_line_label.add_theme_font_size_override("font_size", 22)
 	_line_label.add_theme_color_override("font_color", Color(0.97, 0.96, 0.93))
 	column.add_child(_line_label)
+
+	_apply_scale()
+	var viewport: Viewport = get_viewport()
+	if viewport != null and not viewport.size_changed.is_connected(_apply_scale):
+		viewport.size_changed.connect(_apply_scale)
+
+
+## Sizes the panel and its type from the viewport.
+##
+## Wired to the viewport's `size_changed` as well as being called once while building,
+## so a resized window re-lays the panel out instead of keeping whatever the size was
+## when the scene loaded.
+func _apply_scale() -> void:
+	if _line_label == null or _speaker_label == null:
+		return
+	var view: Vector2 = get_viewport().get_visible_rect().size
+	if view.x <= 0.0 or view.y <= 0.0:
+		return
+	var width: float = clampf(view.x * WIDTH_SHARE, WIDTH_MIN, WIDTH_MAX)
+	_line_label.custom_minimum_size = Vector2(width, 0.0)
+	var scale: float = minf(view.y / DESIGN_HEIGHT, 1.0)
+	_speaker_label.add_theme_font_size_override(
+		"font_size", maxi(10, roundi(float(SPEAKER_FONT) * scale)))
+	_line_label.add_theme_font_size_override(
+		"font_size", maxi(12, roundi(float(LINE_FONT) * scale)))
 
 
 func _on_started(npc: NPC, turn: ConversationTurn) -> void:

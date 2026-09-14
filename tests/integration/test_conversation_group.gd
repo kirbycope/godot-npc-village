@@ -123,3 +123,85 @@ func test_the_villagers_turn_to_face_whoever_is_speaking() -> void:
 	# The listener tracks the speaker; the speaker tracks nobody.
 	assert_true(_baker.is_speaking())
 	assert_false(_smith.is_speaking())
+
+
+## A beat far longer than anyone's allowance, to prove the cap holds however it arrives.
+func _overlong_beat() -> Array[ConversationTurn]:
+	var turns: Array[ConversationTurn] = []
+	for i: int in 12:
+		turns.append(ConversationTurn.new(
+			&"baker" if i % 2 == 0 else &"smith", "Line %d." % i
+		))
+	return turns
+
+
+func test_they_stop_at_the_cap_however_long_the_beat_is() -> void:
+	# The villagers talking on and on was a beat being taken up and performed whole
+	# regardless of what had already been said, so the limit is checked at the moment of
+	# speaking rather than only when a beat is asked for.
+	_group.begin_interaction()
+	ConversationDirector.beat_ready.emit(&"test_group", _overlong_beat())
+	await wait_frames(2)
+	await wait_seconds(14.0)
+
+	var spoken: Dictionary = {}
+	for turn: ConversationTurn in _group.transcript():
+		spoken[turn.speaker] = spoken.get(turn.speaker, 0) + 1
+	var total: int = 0
+	for who: StringName in spoken:
+		total += int(spoken[who])
+	# Everyone's allowance, plus the single line allowed to close the exchange.
+	var ceiling: int = _group.max_turns_per_villager * 2 + 1
+	assert_lte(total, ceiling, "they should stop at the cap, not run on")
+	assert_false(_group.is_performing(), "and the beat should be over")
+
+
+func test_one_line_is_allowed_to_close_the_exchange() -> void:
+	# Stopping dead on the cap cuts somebody off mid-reply, so exactly one line past it
+	# is permitted to round the exchange off.
+	_group.begin_interaction()
+	ConversationDirector.beat_ready.emit(&"test_group", _overlong_beat())
+	await wait_frames(2)
+	await wait_seconds(14.0)
+
+	var total: int = _group.transcript().size()
+	assert_gt(total, _group.max_turns_per_villager * 2, "the closing line should be spoken")
+
+
+func test_engaging_a_villager_gives_everyone_their_lines_back() -> void:
+	_group.begin_interaction()
+	ConversationDirector.beat_ready.emit(&"test_group", _overlong_beat())
+	await wait_frames(2)
+	await wait_seconds(14.0)
+	assert_false(_group._anyone_may_speak(), "everyone should be spent")
+
+	# Looking at a villager and pressing the action button is the other way in, besides
+	# speaking to them.
+	_baker.equip(null)
+	await wait_frames(2)
+	assert_true(_group._anyone_may_speak(), "engaging one of them should reopen the group")
+
+
+func test_lines_after_the_opening_are_counted() -> void:
+	# The opening is deliberately free, but the flag marking it was only cleared when a
+	# beat ended with nothing queued. A beat prefetched while the opening was still
+	# playing was then taken up with the flag still set, so every line of it counted as
+	# part of the opening, which is to say not counted at all, and the villagers never
+	# ran out of allowance.
+	_group.begin_interaction()
+	_group._performing_opening = true
+	var opening: Array[ConversationTurn] = []
+	opening.append(ConversationTurn.new(&"smith", "An opening line."))
+	_group._pending = opening
+	# A generated beat arrives while the opening is still going, exactly as prefetch does.
+	_group._prefetched = _beat()
+	_group._running = true
+	_group._advance()
+	await wait_frames(2)
+	await wait_seconds(9.0)
+
+	assert_false(_group._performing_opening, "the opening flag must not stick")
+	var counted: int = 0
+	for who: StringName in _group._turns_taken:
+		counted += int(_group._turns_taken[who])
+	assert_gt(counted, 0, "the beat after the opening has to count against the allowance")

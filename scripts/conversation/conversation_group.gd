@@ -82,7 +82,7 @@ signal turn_started(npc: NPC, turn: ConversationTurn)
 ##
 ## Two is enough for an exchange to land and short enough that the village stays a place
 ## you visit rather than a radio left on.
-@export_range(1, 10, 1) var max_turns_per_villager: int = 2
+@export_range(1, 10, 1) var max_turns_per_villager: int = 3
 
 ## Start talking as soon as the scene loads. Ignored while
 ## `converse_only_when_player_present` is on, since arrival is what starts a beat then.
@@ -110,6 +110,9 @@ var _turns_taken: Dictionary[StringName, int] = {}
 ## Whether the authored opening has been performed yet.
 var _opening_spent: bool = false
 
+## Whether the one closing line allowed past the cap has been used this interaction.
+var _wrap_up_used: bool = false
+
 ## True while the authored opening is playing. Its turns do not count against anyone's
 ## allowance: they are written by hand and already paid for in the voice bank, so
 ## charging them to the budget would use the whole interaction up before the model got
@@ -129,6 +132,7 @@ func _ready() -> void:
 	for npc: NPC in npcs:
 		if is_instance_valid(npc):
 			npc.finished_speaking.connect(_on_npc_finished)
+			npc.engaged.connect(_on_npc_engaged)
 
 	if autostart and not converse_only_when_player_present:
 		# A short stagger keeps every group in the village from requesting at once.
@@ -246,10 +250,20 @@ func hear_player(line: String, addressed: NPC) -> void:
 	_cooldown_timer.start(0.15)
 
 
-## Gives every villager here their lines back. Called when the player arrives and every
-## time they speak.
+## The player engaged a villager of this group by hand. Everyone gets their lines back
+## and the conversation picks up again.
+func _on_npc_engaged(_npc: NPC) -> void:
+	begin_interaction()
+	if not _running:
+		_cooldown_timer.stop()
+		_cooldown_timer.start(0.15)
+
+
+## Gives every villager here their lines back. Called when the player arrives, when they
+## speak, and when they engage a villager directly.
 func begin_interaction() -> void:
 	_turns_taken.clear()
+	_wrap_up_used = false
 
 
 ## Whether `id` has anything left to say in this interaction.
@@ -441,13 +455,35 @@ func _parse_lines(lines: PackedStringArray) -> Array[ConversationTurn]:
 
 
 func _advance() -> void:
+	# The cap is checked here, at the moment of speaking, and not only when a beat is
+	# asked for. A beat that arrived while the last one was still playing would otherwise
+	# be taken up and performed whole however much had been said since, which is how the
+	# villagers talked on indefinitely.
+	if not _anyone_may_speak() and not _pending.is_empty():
+		if _wrap_up_used:
+			_pending.clear()
+			_prefetched.clear()
+		else:
+			# One line past the cap, so the exchange closes on a reply rather than
+			# stopping dead in the middle of one.
+			_wrap_up_used = true
+			_pending = _pending.slice(0, 1)
+			_prefetched.clear()
+
 	if _pending.is_empty():
-		if not _prefetched.is_empty():
+		# Whatever comes next is not the opening any more. Clearing this only when a beat
+		# ended with nothing queued was the bug behind the villagers never stopping: a
+		# beat prefetched while the opening was still playing left the flag set for good,
+		# and every line after it was counted as part of the opening, which is to say not
+		# counted at all. The allowance never fell, so they always had something left to
+		# say.
+		_performing_opening = false
+		if not _prefetched.is_empty() and _anyone_may_speak():
 			# The next beat is already written, so the conversation carries straight on.
 			_pending = _prefetched
 			_prefetched = []
 		else:
-			_performing_opening = false
+			_prefetched.clear()
 			_running = false
 			_speaker = null
 			beat_ended.emit(self)

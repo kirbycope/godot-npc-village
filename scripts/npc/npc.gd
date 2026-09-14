@@ -19,6 +19,10 @@ signal started_speaking(npc: NPC, turn: ConversationTurn)
 ## The line finished, was cut off, or never got audio.
 signal finished_speaking(npc: NPC)
 
+## The player engaged this villager directly, by looking at them and pressing the action
+## button. Their group listens and gives everyone their lines back.
+signal engaged(npc: NPC)
+
 ## Who this villager is. Assign a `.tres` from `resources/personas/`.
 @export var persona: NPCPersona
 
@@ -203,6 +207,28 @@ func stop_speaking() -> void:
 	if is_instance_valid(voice_player) and voice_player.playing:
 		voice_player.stop()
 	_conclude()
+
+
+## Called by the player controller's camera when it is looking at this villager, and
+## again with `hide_menu` when it looks away. Implementing the pair is what puts a
+## villager on the camera's interaction ray at all.
+func display_menu(_player: Node) -> void:
+	if is_instance_valid(name_plate):
+		name_plate.modulate = Color(1.0, 0.96, 0.82)
+
+
+func hide_menu() -> void:
+	if is_instance_valid(name_plate):
+		name_plate.modulate = Color(0.87, 0.85, 0.78)
+
+
+## Called when the player presses the action button while looking at this villager.
+##
+## Engaging them by hand starts a fresh interaction, the same as speaking to them does,
+## so a group that has said its piece can be asked for more without the player having to
+## walk away and come back.
+func equip(_player: Node) -> void:
+	engaged.emit(self)
 
 
 ## Turn to face `target` while talking. Pass null to stop tracking.

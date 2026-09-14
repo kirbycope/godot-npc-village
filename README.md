@@ -233,7 +233,7 @@ voices, and `test_npc_persona.gd` fails the build if anyone is given a blocked o
 
 ## Tests
 
-The suite is 77 tests and runs entirely from recorded fixtures and committed clips. It never makes a network
+The suite is 80 tests and runs entirely from recorded fixtures and committed clips. It never makes a network
 request, so it costs nothing and works in CI with no credentials. This is enforced rather
 than assumed: `RuntimeMode.is_offline()` detects GUT's runner on the command line and both
 paid services refuse to send anything when it returns true.
@@ -339,9 +339,10 @@ genuinely should shrink with distance.
 - Five of the eight gestures (`shrug`, `lean_in`, `turn_away`, `point`, `laugh`) have no
   clip in the animation library and are posed procedurally. They read acceptably but a real
   clip would be better.
-- The village buildings are still the Kenney Fantasy Town Kit. Quaternius's Medieval
-  Village MegaKit is in the staging area and is denser and better matched to the villagers;
-  swapping it in means re-measuring the module grid in `build_world.gd`.
+- Only the pieces of each pack the village actually places are committed, so changing a
+  building's size or wall style in `build_world.gd` can ask for a model that is no longer
+  here. The generator falls back to a plain wall and warns about a missing roof rather
+  than failing, but the fix is to copy that one piece back in from the pack.
 - The API keys live in the client. On desktop they come from `.env`, which is fine for a
   proof of concept and is not how a real product would do it: that wants a relay holding
   the keys server-side, with the game talking to the relay. Until there is one, the web
@@ -362,14 +363,26 @@ All assets are CC0 or MIT and are attributed below.
 | Modular Character Outfits: Fantasy | <https://quaternius.com> | CC0 1.0 |
 | Universal Animation Library 1 and 2 | <https://quaternius.com> | CC0 1.0 |
 
-The Kenney kits are in `assets/kenney/` and the Quaternius packs in `assets/quaternius/`,
-each with the `License.txt` from its download.
+The packs live in `assets/quaternius/`, each with the `License.txt` from its download.
 
-Only six outfits and the two animation libraries are committed, not the whole packs. The
-source textures are 4096 square and run to 180 MB; `tools/tinyify.py` downsizes them to the
-512 limit these projects import at, which brings the same 25 textures to about 3 MB with no
-visible difference at the size a villager occupies on screen. `tools/inventory_assets.py`
-is what picks which packs are worth taking in the first place.
+**Only the files the village actually uses are committed.** The packs are large and mostly
+irrelevant to this village: the Medieval Village MegaKit alone ships 305 models, of which
+the generator places 26 distinct pieces, and the head pack ships a dozen faces where two
+are worn. Everything else was removed from the working tree and from the history, taking
+the repository from 140 MB to a fraction of that, because a clone should not carry 900
+files nobody loads.
+
+The keep list is computed rather than curated: every `res://assets/...` path named in a
+committed scene, resource, script or tool is a seed, every glTF drags in its `.bin` and
+its textures, every `.tres` drags in its `ext_resource` chain, and every licence file
+stays. The four wall styles keep all four of their variants even where this world's seed
+happens not to place one, because the generator picks windows at random and a seed change
+must not leave a hole.
+
+The textures that remain are still downsized: the sources are 4096 square and run to
+180 MB, and `tools/tinyify.py` brings them to the 512 limit these projects import at with
+no visible difference at the size a villager occupies on screen.
+`tools/inventory_assets.py` is what picks which packs are worth taking in the first place.
 
 ## Addons
 

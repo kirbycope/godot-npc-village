@@ -174,9 +174,59 @@ func _build_world() -> bool:
 		return false
 	if ResourceSaver.save(packed, WORLD_SCENE_PATH) != OK:
 		printerr("Could not save %s" % WORLD_SCENE_PATH)
+		world.free()
 		return false
+	# Freed rather than left for the engine to collect at exit, which otherwise reports
+	# a couple of thousand resources still in use and looks like a leak in the project.
+	world.free()
+	_strip_instance_connections(WORLD_SCENE_PATH, "Player")
 	print("wrote ", WORLD_SCENE_PATH)
 	return true
+
+
+## Removes connections that belong inside an instanced sub-scene.
+##
+## `PackedScene.pack()` serialises the outgoing signal connections of any node whose
+## owner is the scene root, and an instanced scene's root qualifies. The player scene
+## already connects its own signals to its own children when it loads, so those same
+## connections written into the world scene are made a second time, and the game opens
+## with seven "Signal is already connected" errors that look like they come from the
+## addon. They do not: they come from this builder, and the editor does not produce them
+## because it does not save an instance's internals this way.
+##
+## Both endpoints are inside the instance, so removing the line loses nothing: the
+## instance still makes the connection itself.
+func _strip_instance_connections(scene_path: String, instance_root: String) -> void:
+	var file: FileAccess = FileAccess.open(scene_path, FileAccess.READ)
+	if file == null:
+		return
+	var text: String = file.get_as_text()
+	file.close()
+
+	var kept: PackedStringArray = PackedStringArray()
+	var removed: int = 0
+	for line: String in text.split("\n"):
+		var is_internal: bool = (
+			line.begins_with("[connection ")
+			and line.contains("from=\"%s\"" % instance_root)
+			and line.contains("to=\"%s/" % instance_root)
+		)
+		if is_internal:
+			removed += 1
+			continue
+		kept.append(line)
+	if removed == 0:
+		return
+
+	var out: FileAccess = FileAccess.open(scene_path, FileAccess.WRITE)
+	if out == null:
+		push_warning("Could not rewrite %s to drop duplicated connections." % scene_path)
+		return
+	out.store_string("\n".join(kept))
+	out.close()
+	print("  dropped %d connection(s) the %s instance already makes itself" % [
+		removed, instance_root,
+	])
 
 
 ## The sun and the sky. WeatherFX takes the light over at run time and swings it with
@@ -625,6 +675,11 @@ func _graft(owner_node: Node, skeleton: Skeleton3D, path: String) -> void:
 	var meshes: Array[Node] = donor.find_children("*", "MeshInstance3D", true, false)
 	for node: Node in meshes:
 		var mesh: MeshInstance3D = node
+		# The owner has to be cleared before the move, not after. A node carried into a
+		# new tree still claiming its old scene root makes that ownership inconsistent,
+		# and Godot warns once per mesh: with a head, eyes, eyebrows and two hairstyles
+		# per villager that is a wall of warnings on every rebuild.
+		mesh.owner = null
 		mesh.get_parent().remove_child(mesh)
 		skeleton.add_child(mesh)
 		mesh.owner = owner_node

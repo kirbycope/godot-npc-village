@@ -1307,7 +1307,7 @@ bind/64/name = &"ball_leaf_r"
 bind/64/bone = -1
 bind/64/pose = Transform3D(-1, -1.2621747e-28, -2.1175776e-22, 2.3535266e-16, 5.9604514e-07, 0.99999774, 0, 1, 0, -0.0906, -0.13359971, -0.015200001)
 
-[node name="NPC" type="CharacterBody3D" unique_id=69610422 node_paths=PackedStringArray("animation_player", "speaking_modifier", "voice_player", "name_plate")]
+[node name="NPC" type="CharacterBody3D" unique_id=1657514720 node_paths=PackedStringArray("animation_player", "speaking_modifier", "voice_player", "name_plate")]
 script = ExtResource("1_gyl02")
 persona = ExtResource("2_ojvcw")
 animation_player = NodePath("Model/AnimationPlayer")
@@ -1315,7 +1315,7 @@ speaking_modifier = NodePath("Model/Armature/Skeleton3D/SpeakingModifier")
 voice_player = NodePath("VoicePlayer")
 name_plate = NodePath("NamePlate")
 
-[node name="Collision" type="CollisionShape3D" parent="." unique_id=312714986]
+[node name="Collision" type="CollisionShape3D" parent="." unique_id=1808549790]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0)
 shape = SubResource("CapsuleShape3D_63hiw")
 
@@ -1938,7 +1938,7 @@ mesh = SubResource("ArrayMesh_fbi7a")
 skin = SubResource("Skin_yolo6")
 skeleton = NodePath("..")
 
-[node name="SpeakingModifier" type="SkeletonModifier3D" parent="Model/Armature/Skeleton3D" index="19" unique_id=1536263282]
+[node name="SpeakingModifier" type="SkeletonModifier3D" parent="Model/Armature/Skeleton3D" index="19" unique_id=1053984705]
 unique_name_in_owner = false
 process_mode = 0
 process_priority = 0
@@ -1957,17 +1957,17 @@ active = true
 influence = 1.0
 script = ExtResource("21_w6wuv")
 
-[node name="AnimationPlayer" type="AnimationPlayer" parent="Model" unique_id=918800586]
+[node name="AnimationPlayer" type="AnimationPlayer" parent="Model" unique_id=1759321226]
 libraries/ual1 = ExtResource("22_r6ksn")
 libraries/ual2 = ExtResource("23_3icgu")
 autoplay = &"ual1/Idle"
 
-[node name="VoicePlayer" type="AudioStreamPlayer3D" parent="." unique_id=939290604]
+[node name="VoicePlayer" type="AudioStreamPlayer3D" parent="." unique_id=627981489]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.6, 0)
 unit_size = 6.0
 max_distance = 22.0
 
-[node name="NamePlate" type="Label3D" parent="." unique_id=785924231]
+[node name="NamePlate" type="Label3D" parent="." unique_id=1350047298]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.22, 0)
 pixel_size = 0.0034
 billboard = 1

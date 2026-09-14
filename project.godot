@@ -27,6 +27,12 @@ VoiceService="*res://scripts/services/voice_service.gd"
 SpeechService="*res://scripts/services/speech_service.gd"
 ConversationDirector="*res://scripts/conversation/conversation_director.gd"
 
+[debug]
+
+file_logging/enable_file_logging=true
+file_logging/log_path="user://logs/godot.log"
+file_logging/max_log_files=8
+
 [display]
 
 window/size/viewport_width=1280

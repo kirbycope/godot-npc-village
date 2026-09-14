@@ -649,11 +649,19 @@ func _build_npc_scene(persona: NPCPersona, scene_path: String) -> PackedScene:
 	npc.add_child(plate)
 	plate.owner = npc
 
+	var bubble: Label3D = _make_label("ThinkingBubble", 0.0052, Vector3(0.0, 2.52, 0.0))
+	bubble.set_script(load("res://scripts/npc/thinking_bubble.gd"))
+	bubble.modulate = Color(0.96, 0.93, 0.84)
+	bubble.outline_size = 12
+	npc.add_child(bubble)
+	bubble.owner = npc
+
 	npc.set("persona", persona)
 	npc.set("animation_player", animation_player)
 	npc.set("speaking_modifier", modifier)
 	npc.set("voice_player", voice)
 	npc.set("name_plate", plate)
+	npc.set("thinking_bubble", bubble)
 
 	var packed: PackedScene = PackedScene.new()
 	if packed.pack(npc) != OK:

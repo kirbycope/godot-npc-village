@@ -154,6 +154,7 @@ func interrupt() -> void:
 	_pending.clear()
 	_prefetched.clear()
 	_performing_opening = false
+	_show_thinking(false)
 	if is_instance_valid(_speaker):
 		_speaker.stop_speaking()
 	_speaker = null
@@ -227,6 +228,7 @@ func _request_beat() -> void:
 	if personas.size() < 2:
 		return
 	_waiting_for_beat = true
+	_show_thinking(true)
 	ConversationDirector.request_beat(group_id, personas, _situation(), _transcript)
 
 
@@ -271,6 +273,18 @@ func begin_interaction() -> void:
 	# player saying they want more of this, and the villagers being mute for the rest of
 	# the evening because of a counter that never resets is not a decision anybody made.
 	VoiceService.begin_interaction()
+
+
+## Raises or lowers the "..." over everyone in the group.
+##
+## Only while a beat is actually being written. A prefetch happens behind dialogue that
+## is already playing, so putting the bubble up for that would show it over a villager in
+## the middle of a sentence.
+func _show_thinking(thinking: bool) -> void:
+	var wanted: bool = thinking and not _running
+	for npc: NPC in npcs:
+		if is_instance_valid(npc):
+			npc.set_group_thinking(wanted)
 
 
 ## Whether `id` has anything left to say in this interaction.
@@ -395,6 +409,7 @@ func _on_beat_ready(group_id_in: StringName, turns: Array[ConversationTurn]) -> 
 	if group_id_in != group_id:
 		return
 	_waiting_for_beat = false
+	_show_thinking(false)
 	if _running:
 		# Prefetched. It waits its turn rather than interrupting what is being said.
 		_prefetched = turns.duplicate()
@@ -415,6 +430,7 @@ func _on_beat_failed(group_id_in: StringName, reason: String) -> void:
 	if group_id_in != group_id:
 		return
 	_waiting_for_beat = false
+	_show_thinking(false)
 	push_warning("[ConversationGroup %s] %s" % [group_id, reason])
 	if _running:
 		return

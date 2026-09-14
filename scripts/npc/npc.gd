@@ -32,6 +32,7 @@ signal engaged(npc: NPC)
 @export var voice_player: AudioStreamPlayer3D
 @export var subtitle: Label3D
 @export var name_plate: Label3D
+@export var thinking_bubble: ThinkingBubble
 
 @export_group("Behaviour")
 
@@ -71,6 +72,9 @@ var _speaking: bool = false
 var _current_handle: int = 0
 var _current_turn: ConversationTurn
 var _look_target: Node3D
+
+## Set by the group while the dialogue model is writing a beat for it.
+var _group_thinking: bool = false
 
 
 func _ready() -> void:
@@ -173,6 +177,9 @@ func speak(turn: ConversationTurn) -> void:
 
 	_play_base_animation()
 	_current_handle = VoiceService.speak(turn.line, persona)
+	# Waiting on a clip is a real pause with nothing to look at, so the bubble stays up
+	# until the voice actually starts.
+	_update_thinking()
 	if _current_handle == 0:
 		# No voice available. The line still reads on screen, paced by its length, so
 		# a keyless build is a silent film rather than a broken one.
@@ -231,6 +238,23 @@ func equip(_player: Node) -> void:
 	engaged.emit(self)
 
 
+## Raises or lowers the "..." over this villager's head.
+##
+## It goes up while their group is waiting on the dialogue model, and while this villager
+## in particular is waiting on a clip. Both are pauses with nothing to look at, and a
+## villager standing mute through one reads as the game having stopped.
+func set_group_thinking(thinking: bool) -> void:
+	_group_thinking = thinking
+	_update_thinking()
+
+
+func _update_thinking() -> void:
+	if not is_instance_valid(thinking_bubble):
+		return
+	var waiting_on_voice: bool = _speaking and _current_handle != 0
+	thinking_bubble.set_thinking(_group_thinking or waiting_on_voice)
+
+
 ## Turn to face `target` while talking. Pass null to stop tracking.
 func look_at_node(target: Node3D) -> void:
 	_look_target = target
@@ -268,6 +292,8 @@ func _face_look_target(delta: float) -> void:
 func _on_clip_ready(handle: int, stream: AudioStream, _from_cache: bool) -> void:
 	if handle != _current_handle or not _speaking:
 		return
+	_current_handle = 0
+	_update_thinking()
 	if not is_instance_valid(voice_player):
 		_finish_after(_current_turn.estimated_duration())
 		return
@@ -301,6 +327,7 @@ func _conclude() -> void:
 	_speaking = false
 	_current_handle = 0
 	_current_turn = null
+	_update_thinking()
 	if is_instance_valid(subtitle):
 		subtitle.visible = false
 		subtitle.text = ""

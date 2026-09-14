@@ -1,0 +1,11 @@
+[gd_resource type="ShaderMaterial" load_steps=3 format=3]
+
+[ext_resource type="Shader" path="res://assets/quaternius/materials/M_Eyes.tres" id="1_epjdd"]
+[ext_resource type="Texture2D" path="res://assets/quaternius/materials/T_Eye_Brown.png" id="2_xc04f"]
+
+[resource]
+render_priority = 0
+shader = ExtResource("1_epjdd")
+shader_parameter/Custom_Eye_Color = false
+shader_parameter/Eye_Color = Color(0.311119, 0.193105, 0.0746085, 1)
+shader_parameter/Eye_Texture = ExtResource("2_xc04f")

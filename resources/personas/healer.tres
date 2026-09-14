@@ -7,7 +7,6 @@
 script = ExtResource("2_2kq67")
 id = &"healer"
 display_name = "Wenna"
-opening_line = ""
 occupation = "herbwife"
 biography = "Wenna lives at the treeline and is called on when someone is dying or being born. The village is grateful to her and wary of her in equal measure, and she has long stopped minding. She chooses her words carefully and says less than she knows."
 traits = PackedStringArray("measured", "private", "unsentimental", "kind in practice")
@@ -22,6 +21,7 @@ outfit_prefix = "Female_Ranger"
 hidden_parts = PackedStringArray()
 feminine = true
 hair = PackedStringArray("Hair_Long")
+hair_color = Color(0.35, 0.16, 0.07, 1)
 voice_id = "pFZP5JQG7iQjIQuC4Bku"
 voice_stability = 0.38
 voice_style = 0.5

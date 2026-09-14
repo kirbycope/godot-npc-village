@@ -1,0 +1,190 @@
+[gd_resource type="VisualShader" load_steps=19 format=3]
+
+[ext_resource type="Texture2D" path="res://assets/quaternius/materials/T_Eye_Normal.png" id="1_341av"]
+[ext_resource type="Texture2D" path="res://assets/quaternius/materials/T_Eye_Split.png" id="2_ms7rm"]
+
+[sub_resource type="VisualShaderNodeClamp" id="VisualShaderNodeClamp_atr41"]
+default_input_values = [0, Quaternion(0, 0, 0, 0), 1, Quaternion(0, 0, 0, 0), 2, Quaternion(1, 1, 1, 1)]
+op_type = 5
+
+[sub_resource type="VisualShaderNodeBooleanParameter" id="VisualShaderNodeBooleanParameter_2j1j3"]
+parameter_name = "Custom_Eye_Color"
+default_value_enabled = true
+default_value = true
+
+[sub_resource type="VisualShaderNodeTexture" id="VisualShaderNodeTexture_erumw"]
+texture = ExtResource("1_341av")
+texture_type = 2
+
+[sub_resource type="VisualShaderNodeTexture2DParameter" id="VisualShaderNodeTexture2DParameter_h1a04"]
+parameter_name = "Eye_Texture"
+texture_type = 1
+
+[sub_resource type="VisualShaderNodeTexture" id="VisualShaderNodeTexture_w83dd"]
+source = 5
+
+[sub_resource type="VisualShaderNodeFloatConstant" id="VisualShaderNodeFloatConstant_2dyg2"]
+
+[sub_resource type="VisualShaderNodeFloatConstant" id="VisualShaderNodeFloatConstant_1j84c"]
+
+[sub_resource type="VisualShaderNodeSwitch" id="VisualShaderNodeSwitch_cjsua"]
+default_input_values = [0, false, 1, Quaternion(1, 1, 1, 1), 2, Quaternion(0, 0, 0, 0)]
+op_type = 5
+
+[sub_resource type="VisualShaderNodeTexture" id="VisualShaderNodeTexture_lk5x8"]
+texture = ExtResource("2_ms7rm")
+
+[sub_resource type="VisualShaderNodeVectorDecompose" id="VisualShaderNodeVectorDecompose_jg0eo"]
+default_input_values = [0, Quaternion(0, 0, 0, 0)]
+op_type = 2
+
+[sub_resource type="VisualShaderNodeFloatOp" id="VisualShaderNodeFloatOp_8h8bo"]
+default_input_values = [0, 0.0, 1, 5.0]
+operator = 2
+
+[sub_resource type="VisualShaderNodeClamp" id="VisualShaderNodeClamp_wd851"]
+
+[sub_resource type="VisualShaderNodeMix" id="VisualShaderNodeMix_ucmy6"]
+default_input_values = [0, Quaternion(0, 0, 0, 0), 1, Quaternion(1, 1, 1, 1), 2, Quaternion(0.5, 0.5, 0.5, 0.5)]
+op_type = 5
+
+[sub_resource type="VisualShaderNodeVectorOp" id="VisualShaderNodeVectorOp_ytgw0"]
+default_input_values = [0, Quaternion(0, 0, 0, 0), 1, Quaternion(0, 0, 0, 0)]
+op_type = 2
+operator = 2
+
+[sub_resource type="VisualShaderNodeColorParameter" id="VisualShaderNodeColorParameter_2jmv7"]
+parameter_name = "Eye_Color"
+default_value_enabled = true
+default_value = Color(0.307164, 0.196635, 0.0553887, 1)
+
+[sub_resource type="VisualShaderNodeVectorOp" id="VisualShaderNodeVectorOp_8c78n"]
+default_input_values = [0, Quaternion(0, 0, 0, 0), 1, Quaternion(0, 0, 0, 0)]
+op_type = 2
+
+[resource]
+code = "shader_type spatial;
+render_mode blend_mix, depth_draw_opaque, cull_back, diffuse_lambert, specular_schlick_ggx;
+
+uniform bool Custom_Eye_Color = true;
+uniform sampler2D tex_frg_2;
+uniform vec4 Eye_Color : source_color = vec4(0.307164, 0.196635, 0.055389, 1.000000);
+uniform sampler2D Eye_Texture : source_color;
+uniform sampler2D tex_frg_14 : hint_normal;
+
+
+
+void fragment() {
+// BooleanParameter:13
+	bool n_out13p0 = Custom_Eye_Color;
+
+
+// Texture2D:2
+	vec4 n_out2p0 = texture(tex_frg_2, UV);
+
+
+// VectorDecompose:3
+	float n_out3p0 = n_out2p0.x;
+	float n_out3p1 = n_out2p0.y;
+	float n_out3p2 = n_out2p0.z;
+	float n_out3p3 = n_out2p0.w;
+
+
+// ColorParameter:8
+	vec4 n_out8p0 = Eye_Color;
+
+
+// VectorOp:7
+	vec4 n_out7p0 = vec4(n_out3p1) * n_out8p0;
+
+
+// FloatOp:4
+	float n_in4p1 = 5.00000;
+	float n_out4p0 = n_out3p1 * n_in4p1;
+
+
+// Clamp:5
+	float n_in5p1 = 0.00000;
+	float n_in5p2 = 1.00000;
+	float n_out5p0 = clamp(n_out4p0, n_in5p1, n_in5p2);
+
+
+// Mix:6
+	vec4 n_out6p0 = mix(vec4(n_out3p0), n_out7p0, vec4(n_out5p0));
+
+
+// VectorOp:9
+	vec4 n_out9p0 = n_out6p0 + vec4(n_out3p2);
+
+
+// Clamp:10
+	vec4 n_in10p1 = vec4(0.00000, 0.00000, 0.00000, 0.00000);
+	vec4 n_in10p2 = vec4(1.00000, 1.00000, 1.00000, 1.00000);
+	vec4 n_out10p0 = clamp(n_out9p0, n_in10p1, n_in10p2);
+
+
+	vec4 n_out16p0;
+// Texture2D:16
+	n_out16p0 = texture(Eye_Texture, UV);
+
+
+	vec4 n_out19p0;
+// Switch:19
+	n_out19p0 = mix(n_out16p0, n_out10p0, float(n_out13p0));
+
+
+// FloatConstant:17
+	float n_out17p0 = 0.000000;
+
+
+// FloatConstant:18
+	float n_out18p0 = 0.000000;
+
+
+// Texture2D:14
+	vec4 n_out14p0 = texture(tex_frg_14, UV);
+
+
+// Output:0
+	ALBEDO = vec3(n_out19p0.xyz);
+	ROUGHNESS = n_out17p0;
+	SPECULAR = n_out18p0;
+	NORMAL_MAP = vec3(n_out14p0.xyz);
+
+
+}
+"
+nodes/fragment/0/position = Vector2(1640, 120)
+nodes/fragment/2/node = SubResource("VisualShaderNodeTexture_lk5x8")
+nodes/fragment/2/position = Vector2(-1200, 160)
+nodes/fragment/3/node = SubResource("VisualShaderNodeVectorDecompose_jg0eo")
+nodes/fragment/3/position = Vector2(-900, 220)
+nodes/fragment/4/node = SubResource("VisualShaderNodeFloatOp_8h8bo")
+nodes/fragment/4/position = Vector2(-580, 120)
+nodes/fragment/5/node = SubResource("VisualShaderNodeClamp_wd851")
+nodes/fragment/5/position = Vector2(-380, 120)
+nodes/fragment/6/node = SubResource("VisualShaderNodeMix_ucmy6")
+nodes/fragment/6/position = Vector2(0, 100)
+nodes/fragment/7/node = SubResource("VisualShaderNodeVectorOp_ytgw0")
+nodes/fragment/7/position = Vector2(-340, 420)
+nodes/fragment/8/node = SubResource("VisualShaderNodeColorParameter_2jmv7")
+nodes/fragment/8/position = Vector2(-760, 560)
+nodes/fragment/9/node = SubResource("VisualShaderNodeVectorOp_8c78n")
+nodes/fragment/9/position = Vector2(311.082, 254.033)
+nodes/fragment/10/node = SubResource("VisualShaderNodeClamp_atr41")
+nodes/fragment/10/position = Vector2(540, 300)
+nodes/fragment/13/node = SubResource("VisualShaderNodeBooleanParameter_2j1j3")
+nodes/fragment/13/position = Vector2(540, 80)
+nodes/fragment/14/node = SubResource("VisualShaderNodeTexture_erumw")
+nodes/fragment/14/position = Vector2(902.532, 539.481)
+nodes/fragment/15/node = SubResource("VisualShaderNodeTexture2DParameter_h1a04")
+nodes/fragment/15/position = Vector2(60, 480)
+nodes/fragment/16/node = SubResource("VisualShaderNodeTexture_w83dd")
+nodes/fragment/16/position = Vector2(400, 600)
+nodes/fragment/17/node = SubResource("VisualShaderNodeFloatConstant_2dyg2")
+nodes/fragment/17/position = Vector2(1400, 220)
+nodes/fragment/18/node = SubResource("VisualShaderNodeFloatConstant_1j84c")
+nodes/fragment/18/position = Vector2(1400, 320)
+nodes/fragment/19/node = SubResource("VisualShaderNodeSwitch_cjsua")
+nodes/fragment/19/position = Vector2(980, 40)
+nodes/fragment/connections = PackedInt32Array(2, 0, 3, 0, 3, 1, 4, 0, 4, 0, 5, 0, 5, 0, 6, 2, 3, 1, 7, 0, 8, 0, 7, 1, 7, 0, 6, 1, 3, 0, 6, 0, 6, 0, 9, 0, 3, 2, 9, 1, 9, 0, 10, 0, 14, 0, 0, 9, 15, 0, 16, 2, 17, 0, 0, 3, 18, 0, 0, 4, 13, 0, 19, 0, 10, 0, 19, 1, 16, 0, 19, 2, 19, 0, 0, 0)

@@ -1,27 +1,32 @@
 [gd_scene format=4]
 
-[ext_resource type="Script" path="res://scripts/npc/npc.gd" id="1_ctaob"]
-[ext_resource type="Resource" path="res://resources/personas/healer.tres" id="2_76xkk"]
-[ext_resource type="PackedScene" path="res://assets/quaternius/characters/Female_Ranger.gltf" id="3_lc0fq"]
-[ext_resource type="Texture2D" path="res://assets/quaternius/characters/T_Ranger_BaseColor.png" id="4_fwxey"]
-[ext_resource type="Texture2D" path="res://assets/quaternius/characters/T_Ranger_ORM.png" id="5_xjj2o"]
-[ext_resource type="Texture2D" path="res://assets/quaternius/characters/T_Ranger_Normal.png" id="6_wuiqs"]
-[ext_resource type="Texture2D" path="res://assets/quaternius/characters/T_Regular_Female_Dark_BaseColor.png" id="7_yqsfg"]
-[ext_resource type="Texture2D" path="res://assets/quaternius/characters/T_Regular_Female_Roughness.png" id="8_mioyv"]
-[ext_resource type="Texture2D" path="res://assets/quaternius/characters/T_Regular_Female_Normal.png" id="9_fow2d"]
-[ext_resource type="Texture2D" path="res://assets/quaternius/heads/T_Hair_2_BaseColor.png" id="10_lsios"]
-[ext_resource type="Texture2D" path="res://assets/quaternius/heads/T_Hair_2_Normal.png" id="11_it6ui"]
-[ext_resource type="Texture2D" path="res://assets/quaternius/heads/T_Eye_Brown.png" id="12_53ob2"]
-[ext_resource type="Texture2D" path="res://assets/quaternius/heads/T_Eye_Normal.png" id="13_dy5dv"]
-[ext_resource type="Texture2D" path="res://assets/quaternius/heads/T_Regular_Female_Dark_BaseColor.png" id="14_ln6w3"]
-[ext_resource type="Texture2D" path="res://assets/quaternius/heads/T_Regular_Female_Roughness.png" id="15_axd72"]
-[ext_resource type="Texture2D" path="res://assets/quaternius/heads/T_Regular_Female_Normal.png" id="16_xr6k1"]
-[ext_resource type="Texture2D" path="res://assets/quaternius/hair/T_Hair_2_Normal.png" id="17_ee8wd"]
-[ext_resource type="Script" path="res://scripts/npc/speaking_modifier.gd" id="18_2yt3j"]
-[ext_resource type="AnimationLibrary" path="res://assets/quaternius/animations/UAL1.glb" id="19_dc8jv"]
-[ext_resource type="AnimationLibrary" path="res://assets/quaternius/animations/UAL2.glb" id="20_4wcx0"]
+[ext_resource type="Script" path="res://scripts/npc/npc.gd" id="1_wuiqs"]
+[ext_resource type="Resource" path="res://resources/personas/healer.tres" id="2_yqsfg"]
+[ext_resource type="PackedScene" path="res://assets/quaternius/characters/Female_Ranger.gltf" id="3_mioyv"]
+[ext_resource type="Texture2D" path="res://assets/quaternius/characters/T_Ranger_BaseColor.png" id="4_fow2d"]
+[ext_resource type="Texture2D" path="res://assets/quaternius/characters/T_Ranger_ORM.png" id="5_lsios"]
+[ext_resource type="Texture2D" path="res://assets/quaternius/characters/T_Ranger_Normal.png" id="6_it6ui"]
+[ext_resource type="Texture2D" path="res://assets/quaternius/characters/T_Regular_Female_Dark_BaseColor.png" id="7_53ob2"]
+[ext_resource type="Texture2D" path="res://assets/quaternius/characters/T_Regular_Female_Roughness.png" id="8_dy5dv"]
+[ext_resource type="Texture2D" path="res://assets/quaternius/characters/T_Regular_Female_Normal.png" id="9_ln6w3"]
+[ext_resource type="Texture2D" path="res://assets/quaternius/heads/T_Hair_2_BaseColor.png" id="10_axd72"]
+[ext_resource type="Texture2D" path="res://assets/quaternius/heads/T_Hair_2_Normal.png" id="11_xr6k1"]
+[ext_resource type="Shader" path="res://assets/quaternius/materials/M_Hair.tres" id="12_ee8wd"]
+[ext_resource type="Texture2D" path="res://assets/quaternius/materials/T_Hair_1_Normal.png" id="13_2yt3j"]
+[ext_resource type="Texture2D" path="res://assets/quaternius/materials/T_Hair_1_BaseColor.png" id="14_dc8jv"]
+[ext_resource type="Texture2D" path="res://assets/quaternius/heads/T_Eye_Brown.png" id="15_4wcx0"]
+[ext_resource type="Texture2D" path="res://assets/quaternius/heads/T_Eye_Normal.png" id="16_yngli"]
+[ext_resource type="Material" path="res://assets/quaternius/materials/MI_Eyes.tres" id="17_exm26"]
+[ext_resource type="Texture2D" path="res://assets/quaternius/heads/T_Regular_Female_Dark_BaseColor.png" id="18_1wy63"]
+[ext_resource type="Texture2D" path="res://assets/quaternius/heads/T_Regular_Female_Roughness.png" id="19_ihvtc"]
+[ext_resource type="Texture2D" path="res://assets/quaternius/heads/T_Regular_Female_Normal.png" id="20_uqfjy"]
+[ext_resource type="Material" path="res://assets/quaternius/materials/MI_Regular_Female.tres" id="21_xdyeo"]
+[ext_resource type="Texture2D" path="res://assets/quaternius/hair/T_Hair_2_Normal.png" id="22_lpmag"]
+[ext_resource type="Script" path="res://scripts/npc/speaking_modifier.gd" id="23_lr7p1"]
+[ext_resource type="AnimationLibrary" path="res://assets/quaternius/animations/UAL1.glb" id="24_l2v0i"]
+[ext_resource type="AnimationLibrary" path="res://assets/quaternius/animations/UAL2.glb" id="25_2sox6"]
 
-[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_yngli"]
+[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_8mv3s"]
 radius = 0.3
 height = 1.8
 
@@ -29,14 +34,14 @@ height = 1.8
 resource_name = "MI_Ranger"
 cull_mode = 2
 vertex_color_use_as_albedo = true
-albedo_texture = ExtResource("4_fwxey")
+albedo_texture = ExtResource("4_fow2d")
 metallic = 1.0
-metallic_texture = ExtResource("5_xjj2o")
+metallic_texture = ExtResource("5_lsios")
 metallic_texture_channel = 2
-roughness_texture = ExtResource("5_xjj2o")
+roughness_texture = ExtResource("5_lsios")
 roughness_texture_channel = 1
 normal_enabled = true
-normal_texture = ExtResource("6_wuiqs")
+normal_texture = ExtResource("6_it6ui")
 metadata/_gltf_primary_texture_coord = 0
 
 [sub_resource type="ArrayMesh" id="ArrayMesh_5wmd2"]
@@ -262,13 +267,13 @@ bind/64/pose = Transform3D(-1, 0, 0, 1.6022851e-12, 4.4703407e-07, 0.99999833, 0
 resource_name = "MI_Regular_Female"
 cull_mode = 2
 vertex_color_use_as_albedo = true
-albedo_texture = ExtResource("7_yqsfg")
-metallic_texture = ExtResource("8_mioyv")
+albedo_texture = ExtResource("7_53ob2")
+metallic_texture = ExtResource("8_dy5dv")
 metallic_texture_channel = 2
-roughness_texture = ExtResource("8_mioyv")
+roughness_texture = ExtResource("8_dy5dv")
 roughness_texture_channel = 1
 normal_enabled = true
-normal_texture = ExtResource("9_fow2d")
+normal_texture = ExtResource("9_ln6w3")
 metadata/_gltf_primary_texture_coord = 0
 
 [sub_resource type="ArrayMesh" id="ArrayMesh_b0jka"]
@@ -450,10 +455,10 @@ blend_shape_mode = 0
 resource_name = "MI_Hair_2"
 cull_mode = 2
 vertex_color_use_as_albedo = true
-albedo_texture = ExtResource("10_lsios")
+albedo_texture = ExtResource("10_axd72")
 roughness = 0.82272726
 normal_enabled = true
-normal_texture = ExtResource("11_it6ui")
+normal_texture = ExtResource("11_xr6k1")
 metadata/_gltf_primary_texture_coord = 0
 
 [sub_resource type="ArrayMesh" id="ArrayMesh_p4yo3"]
@@ -675,14 +680,22 @@ bind/64/name = &"ball_leaf_r"
 bind/64/bone = -1
 bind/64/pose = Transform3D(-1, 0, 0, 1.6022851e-12, 4.4703407e-07, 0.99999833, 0, 0.9999999, 0, -0.1114, -0.12989978, -0.01480003)
 
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_jbtp6"]
+render_priority = 0
+shader = ExtResource("12_ee8wd")
+shader_parameter/Hair_Texture = ExtResource("14_dc8jv")
+shader_parameter/Hair_Color = Color(0.35, 0.16, 0.07, 1)
+shader_parameter/Roughness = 0.9
+shader_parameter/Hair_Normal_Map = ExtResource("13_2yt3j")
+
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_n0jj6"]
 resource_name = "MI_Eyes"
 cull_mode = 2
 vertex_color_use_as_albedo = true
-albedo_texture = ExtResource("12_53ob2")
+albedo_texture = ExtResource("15_4wcx0")
 roughness = 0.34545454
 normal_enabled = true
-normal_texture = ExtResource("13_dy5dv")
+normal_texture = ExtResource("16_yngli")
 metadata/_gltf_primary_texture_coord = 0
 
 [sub_resource type="ArrayMesh" id="ArrayMesh_w3pam"]
@@ -708,13 +721,13 @@ blend_shape_mode = 0
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_3unel"]
 resource_name = "MI_Regular_Female"
 cull_mode = 2
-albedo_texture = ExtResource("14_ln6w3")
-metallic_texture = ExtResource("15_axd72")
+albedo_texture = ExtResource("18_1wy63")
+metallic_texture = ExtResource("19_ihvtc")
 metallic_texture_channel = 2
-roughness_texture = ExtResource("15_axd72")
+roughness_texture = ExtResource("19_ihvtc")
 roughness_texture_channel = 1
 normal_enabled = true
-normal_texture = ExtResource("16_xr6k1")
+normal_texture = ExtResource("20_uqfjy")
 metadata/_gltf_primary_texture_coord = 0
 
 [sub_resource type="ArrayMesh" id="ArrayMesh_2dn1q"]
@@ -742,7 +755,7 @@ resource_name = "MI_Hair_2"
 cull_mode = 2
 roughness = 0.71212125
 normal_enabled = true
-normal_texture = ExtResource("17_ee8wd")
+normal_texture = ExtResource("22_lpmag")
 metadata/_gltf_primary_texture_coord = 0
 
 [sub_resource type="ArrayMesh" id="ArrayMesh_6yj72"]
@@ -964,19 +977,27 @@ bind/64/name = &"ball_leaf_r"
 bind/64/bone = -1
 bind/64/pose = Transform3D(-1, 0, 0, 1.6022851e-12, 4.4703407e-07, 0.99999833, 0, 0.9999999, 0, -0.1114, -0.12989978, -0.01480003)
 
-[node name="NPC" type="CharacterBody3D" unique_id=85371025 node_paths=PackedStringArray("animation_player", "speaking_modifier", "voice_player", "name_plate")]
-script = ExtResource("1_ctaob")
-persona = ExtResource("2_76xkk")
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_xn3uw"]
+render_priority = 0
+shader = ExtResource("12_ee8wd")
+shader_parameter/Hair_Texture = ExtResource("14_dc8jv")
+shader_parameter/Hair_Color = Color(0.35, 0.16, 0.07, 1)
+shader_parameter/Roughness = 0.9
+shader_parameter/Hair_Normal_Map = ExtResource("13_2yt3j")
+
+[node name="NPC" type="CharacterBody3D" unique_id=2045101246 node_paths=PackedStringArray("animation_player", "speaking_modifier", "voice_player", "name_plate")]
+script = ExtResource("1_wuiqs")
+persona = ExtResource("2_yqsfg")
 animation_player = NodePath("Model/AnimationPlayer")
 speaking_modifier = NodePath("Model/Armature/Skeleton3D/SpeakingModifier")
 voice_player = NodePath("VoicePlayer")
 name_plate = NodePath("NamePlate")
 
-[node name="Collision" type="CollisionShape3D" parent="." unique_id=442714598]
+[node name="Collision" type="CollisionShape3D" parent="." unique_id=1291905220]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0)
-shape = SubResource("CapsuleShape3D_yngli")
+shape = SubResource("CapsuleShape3D_8mv3s")
 
-[node name="Model" parent="." unique_id=940643995 instance=ExtResource("3_lc0fq")]
+[node name="Model" parent="." unique_id=940643995 instance=ExtResource("3_mioyv")]
 
 [node name="Skeleton3D" parent="Model/Armature" parent_id_path=PackedInt32Array(940643995, 1290293739) index="0" unique_id=1961702218]
 bones/0/name = "root"
@@ -1545,27 +1566,31 @@ mesh = SubResource("ArrayMesh_nas46")
 skin = SubResource("Skin_nabik")
 skeleton = NodePath("..")
 
-[node name="Eyebrows" type="MeshInstance3D" parent="Model/Armature/Skeleton3D" index="9" unique_id=1658217429]
+[node name="Eyebrows" type="MeshInstance3D" parent="Model/Armature/Skeleton3D" index="9" unique_id=1658217429 groups=["grafted"]]
 mesh = SubResource("ArrayMesh_p4yo3")
 skin = SubResource("Skin_u138f")
 skeleton = NodePath("..")
+surface_material_override/0 = SubResource("ShaderMaterial_jbtp6")
 
-[node name="Eyes" type="MeshInstance3D" parent="Model/Armature/Skeleton3D" index="10" unique_id=333128573]
+[node name="Eyes" type="MeshInstance3D" parent="Model/Armature/Skeleton3D" index="10" unique_id=333128573 groups=["grafted"]]
 mesh = SubResource("ArrayMesh_w3pam")
 skin = SubResource("Skin_u138f")
 skeleton = NodePath("..")
+surface_material_override/0 = ExtResource("17_exm26")
 
-[node name="Female_Regular_001" type="MeshInstance3D" parent="Model/Armature/Skeleton3D" index="11" unique_id=1372717279]
+[node name="Female_Regular_001" type="MeshInstance3D" parent="Model/Armature/Skeleton3D" index="11" unique_id=1372717279 groups=["grafted"]]
 mesh = SubResource("ArrayMesh_2dn1q")
 skin = SubResource("Skin_u138f")
 skeleton = NodePath("..")
+surface_material_override/0 = ExtResource("21_xdyeo")
 
-[node name="Hair_Long" type="MeshInstance3D" parent="Model/Armature/Skeleton3D" index="12" unique_id=829399734]
+[node name="Hair_Long" type="MeshInstance3D" parent="Model/Armature/Skeleton3D" index="12" unique_id=829399734 groups=["grafted"]]
 mesh = SubResource("ArrayMesh_6yj72")
 skin = SubResource("Skin_jgsfl")
 skeleton = NodePath("..")
+surface_material_override/0 = SubResource("ShaderMaterial_xn3uw")
 
-[node name="SpeakingModifier" type="SkeletonModifier3D" parent="Model/Armature/Skeleton3D" index="13" unique_id=904954147]
+[node name="SpeakingModifier" type="SkeletonModifier3D" parent="Model/Armature/Skeleton3D" index="13" unique_id=1684814212]
 unique_name_in_owner = false
 process_mode = 0
 process_priority = 0
@@ -1582,19 +1607,19 @@ visible = true
 visibility_parent = NodePath("")
 active = true
 influence = 1.0
-script = ExtResource("18_2yt3j")
+script = ExtResource("23_lr7p1")
 
-[node name="AnimationPlayer" type="AnimationPlayer" parent="Model" unique_id=249043706]
-libraries/ual1 = ExtResource("19_dc8jv")
-libraries/ual2 = ExtResource("20_4wcx0")
+[node name="AnimationPlayer" type="AnimationPlayer" parent="Model" unique_id=2122325361]
+libraries/ual1 = ExtResource("24_l2v0i")
+libraries/ual2 = ExtResource("25_2sox6")
 autoplay = &"ual1/Idle"
 
-[node name="VoicePlayer" type="AudioStreamPlayer3D" parent="." unique_id=24365342]
+[node name="VoicePlayer" type="AudioStreamPlayer3D" parent="." unique_id=936161202]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.6, 0)
 unit_size = 6.0
 max_distance = 22.0
 
-[node name="NamePlate" type="Label3D" parent="." unique_id=1026010764]
+[node name="NamePlate" type="Label3D" parent="." unique_id=1505591023]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.22, 0)
 pixel_size = 0.0034
 billboard = 1

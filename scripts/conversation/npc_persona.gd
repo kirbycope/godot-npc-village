@@ -85,6 +85,11 @@ extends Resource
 ## `Hair_Buzzed` and `Hair_Beard` together.
 @export var hair: PackedStringArray = PackedStringArray()
 
+## Hair and eyebrow colour, fed to the `Hair_Color` parameter of Quaternius's hair
+## shader. The texture is greyscale and the shader tints it, so this is where the colour
+## actually comes from; leaving it light gives white hair on everybody.
+@export var hair_color: Color = Color(0.21, 0.15, 0.05)
+
 
 @export_group("Voice")
 

@@ -1,0 +1,88 @@
+[gd_resource type="VisualShader" load_steps=8 format=3]
+
+[sub_resource type="VisualShaderNodeTexture2DParameter" id="VisualShaderNodeTexture2DParameter_octwc"]
+parameter_name = "Hair_Texture"
+texture_type = 1
+
+[sub_resource type="VisualShaderNodeTexture" id="VisualShaderNodeTexture_la162"]
+source = 5
+
+[sub_resource type="VisualShaderNodeVectorOp" id="VisualShaderNodeVectorOp_6v0jk"]
+default_input_values = [0, Quaternion(0, 0, 0, 0), 1, Quaternion(0, 0, 0, 0)]
+op_type = 2
+operator = 2
+
+[sub_resource type="VisualShaderNodeColorParameter" id="VisualShaderNodeColorParameter_pqaaw"]
+parameter_name = "Hair_Color"
+default_value_enabled = true
+default_value = Color(0.213952, 0.15474, 0.0472213, 1)
+
+[sub_resource type="VisualShaderNodeTexture2DParameter" id="VisualShaderNodeTexture2DParameter_gi18n"]
+parameter_name = "Hair_Normal_Map"
+texture_type = 2
+
+[sub_resource type="VisualShaderNodeTexture" id="VisualShaderNodeTexture_unfbn"]
+source = 5
+
+[sub_resource type="VisualShaderNodeFloatParameter" id="VisualShaderNodeFloatParameter_6vulh"]
+parameter_name = "Roughness"
+default_value_enabled = true
+default_value = 0.9
+
+[resource]
+code = "shader_type spatial;
+render_mode blend_mix, depth_draw_opaque, cull_back, diffuse_lambert, specular_schlick_ggx;
+
+uniform sampler2D Hair_Texture : source_color;
+uniform vec4 Hair_Color : source_color = vec4(0.213952, 0.154740, 0.047221, 1.000000);
+uniform float Roughness = 0.89999997615814;
+uniform sampler2D Hair_Normal_Map : hint_normal;
+
+
+
+void fragment() {
+	vec4 n_out3p0;
+// Texture2D:3
+	n_out3p0 = texture(Hair_Texture, UV);
+
+
+// ColorParameter:5
+	vec4 n_out5p0 = Hair_Color;
+
+
+// VectorOp:4
+	vec4 n_out4p0 = n_out3p0 * n_out5p0;
+
+
+// FloatParameter:8
+	float n_out8p0 = Roughness;
+
+
+	vec4 n_out7p0;
+// Texture2D:7
+	n_out7p0 = texture(Hair_Normal_Map, UV);
+
+
+// Output:0
+	ALBEDO = vec3(n_out4p0.xyz);
+	ROUGHNESS = n_out8p0;
+	NORMAL_MAP = vec3(n_out7p0.xyz);
+
+
+}
+"
+nodes/fragment/2/node = SubResource("VisualShaderNodeTexture2DParameter_octwc")
+nodes/fragment/2/position = Vector2(-640, 20)
+nodes/fragment/3/node = SubResource("VisualShaderNodeTexture_la162")
+nodes/fragment/3/position = Vector2(-240, 60)
+nodes/fragment/4/node = SubResource("VisualShaderNodeVectorOp_6v0jk")
+nodes/fragment/4/position = Vector2(80, 140)
+nodes/fragment/5/node = SubResource("VisualShaderNodeColorParameter_pqaaw")
+nodes/fragment/5/position = Vector2(-280, 280)
+nodes/fragment/6/node = SubResource("VisualShaderNodeTexture2DParameter_gi18n")
+nodes/fragment/6/position = Vector2(-420, 580)
+nodes/fragment/7/node = SubResource("VisualShaderNodeTexture_unfbn")
+nodes/fragment/7/position = Vector2(-20, 620)
+nodes/fragment/8/node = SubResource("VisualShaderNodeFloatParameter_6vulh")
+nodes/fragment/8/position = Vector2(40, 360)
+nodes/fragment/connections = PackedInt32Array(2, 0, 3, 2, 3, 0, 4, 0, 4, 0, 0, 0, 5, 0, 4, 1, 6, 0, 7, 2, 7, 0, 0, 9, 8, 0, 0, 3)

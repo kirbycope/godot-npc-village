@@ -94,6 +94,11 @@ func _select_outfit_parts() -> void:
 		return
 	var meshes: Array[Node] = find_children("*", "MeshInstance3D", true, false)
 	for node: MeshInstance3D in meshes:
+		# The head, eyes and hair are grafted on from other files and are not part of any
+		# outfit, so the outfit's name prefix says nothing about them. Filtering them
+		# leaves the villager headless.
+		if node.is_in_group("grafted"):
+			continue
 		var mesh_name: String = node.name
 		var wanted: bool = (
 			persona.outfit_prefix.is_empty()

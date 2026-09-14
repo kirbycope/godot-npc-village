@@ -7,7 +7,6 @@
 script = ExtResource("2_66dq7")
 id = &"innkeeper"
 display_name = "Corwin"
-opening_line = ""
 occupation = "keeper of the Crooked Hart"
 biography = "Corwin keeps the Crooked Hart and has the innkeeper's habit of agreeing with whoever is in front of him. He tells a story well and at length. Behind the warmth he is counting, always, and he knows exactly who was in his taproom on any given night."
 traits = PackedStringArray("warm", "talkative", "watches everyone", "never quite answers")
@@ -21,6 +20,7 @@ outfit = ExtResource("1_w3s17")
 outfit_prefix = "Male_Noble"
 hidden_parts = PackedStringArray("Head_Crown", "Acc_Pauldron_Lion", "Acc_Gorget")
 hair = PackedStringArray("Hair_SlickBack", "Hair_Moustache")
+hair_color = Color(0.2, 0.14, 0.08, 1)
 voice_id = "JBFqnCBsd6RMkjVDRZzb"
 voice_stability = 0.42
 voice_style = 0.45

@@ -7,7 +7,6 @@
 script = ExtResource("2_cosct")
 id = &"elder"
 display_name = "Father Brannoc"
-opening_line = ""
 occupation = "village priest"
 biography = "Brannoc has buried three generations of Ashmoor and christened most of the living. He speaks slowly and in circles, partly from age and partly because it makes people fill the silence. He has heard every confession in this village."
 traits = PackedStringArray("unhurried", "fond of parable", "stubborn", "sharper than he appears")
@@ -21,6 +20,7 @@ outfit = ExtResource("1_ohsr4")
 outfit_prefix = "Male_Wizard"
 hidden_parts = PackedStringArray()
 hair = PackedStringArray("Hair_Balding", "Hair_Beard")
+hair_color = Color(0.72, 0.7, 0.66, 1)
 voice_id = "pqHfZKP75CvOlQylNhV4"
 voice_stability = 0.5
 voice_style = 0.35

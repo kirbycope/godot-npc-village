@@ -29,6 +29,8 @@ const CAST: Array[Dictionary] = [
 		"hidden": [],
 		"feminine": false,
 		"hair": ["Hair_Buzzed", "Hair_Beard"],
+		# iron grey, going dark at the roots
+		"hair_color": Color(0.16, 0.13, 0.11),
 		"name": "Aldric",
 		"occupation": "blacksmith",
 		"voice": "pNInz6obpgDQGcFmaJgB",
@@ -56,6 +58,8 @@ const CAST: Array[Dictionary] = [
 		"hidden": [],
 		"feminine": true,
 		"hair": ["Hair_Bob"],
+		# brown
+		"hair_color": Color(0.33, 0.20, 0.09),
 		"name": "Maud",
 		"occupation": "baker",
 		"voice": "Xb7hH8MSUJpSbSDYk0k2",
@@ -83,6 +87,8 @@ const CAST: Array[Dictionary] = [
 		"hidden": ["Head_Crown", "Acc_Pauldron_Lion", "Acc_Gorget"],
 		"feminine": false,
 		"hair": ["Hair_SlickBack", "Hair_Moustache"],
+		# dark brown, kept tidy
+		"hair_color": Color(0.20, 0.14, 0.08),
 		"name": "Corwin",
 		"occupation": "keeper of the Crooked Hart",
 		"voice": "JBFqnCBsd6RMkjVDRZzb",
@@ -110,6 +116,8 @@ const CAST: Array[Dictionary] = [
 		"hidden": ["Head_Horns", "Acc_Pauldron_Spike"],
 		"feminine": false,
 		"hair": ["Hair_Buzzed"],
+		# near black
+		"hair_color": Color(0.10, 0.09, 0.08),
 		"name": "Serjeant Hale",
 		"occupation": "village serjeant",
 		"voice": "onwK4e9ZLuTAKqWW03F9",
@@ -137,6 +145,8 @@ const CAST: Array[Dictionary] = [
 		"hidden": [],
 		"feminine": false,
 		"hair": ["Hair_Balding", "Hair_Beard"],
+		# white, and the only one who has earned it
+		"hair_color": Color(0.72, 0.70, 0.66),
 		"name": "Father Brannoc",
 		"occupation": "village priest",
 		"voice": "pqHfZKP75CvOlQylNhV4",
@@ -164,6 +174,8 @@ const CAST: Array[Dictionary] = [
 		"hidden": [],
 		"feminine": true,
 		"hair": ["Hair_Long"],
+		# auburn
+		"hair_color": Color(0.35, 0.16, 0.07),
 		"name": "Wenna",
 		"occupation": "herbwife",
 		"voice": "pFZP5JQG7iQjIQuC4Bku",
@@ -215,6 +227,7 @@ func _init() -> void:
 		for style: String in entry["hair"]:
 			hair.append(style)
 		persona.hair = hair
+		persona.hair_color = entry["hair_color"]
 
 		var traits: PackedStringArray = PackedStringArray()
 		for item: String in entry["traits"]:

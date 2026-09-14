@@ -1,0 +1,14 @@
+[gd_resource type="ShaderMaterial" load_steps=5 format=3]
+
+[ext_resource type="Shader" path="res://assets/quaternius/materials/M_BaseCharacter.tres" id="1_afxsl"]
+[ext_resource type="Texture2D" path="res://assets/quaternius/materials/T_Regular_Male_Dark_BaseColor.png" id="2_prqm8"]
+[ext_resource type="Texture2D" path="res://assets/quaternius/materials/T_Regular_Male_Normal.png" id="3_t731a"]
+[ext_resource type="Texture2D" path="res://assets/quaternius/materials/T_Regular_Male_Roughness.png" id="4_4sbka"]
+
+[resource]
+render_priority = 0
+shader = ExtResource("1_afxsl")
+shader_parameter/Skin_Color = Color(1, 1, 1, 1)
+shader_parameter/Base_Color_Texture = ExtResource("2_prqm8")
+shader_parameter/Roughness_Texture = ExtResource("4_4sbka")
+shader_parameter/Normal_Texture = ExtResource("3_t731a")

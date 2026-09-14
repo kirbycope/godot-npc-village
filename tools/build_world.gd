@@ -66,6 +66,15 @@ const HEADS: Dictionary[bool, String] = {
 }
 
 const HAIR_DIR: String = "res://assets/quaternius/hair"
+
+## The materials Quaternius ships with the base characters. The glTF files carry no
+## usable material of their own, so without these the hair renders as an untinted white
+## mass: the colour lives in the shader's `Hair_Color` parameter, not in the texture.
+const MATERIALS: String = "res://assets/quaternius/materials"
+const MATERIAL_SKIN_MALE: String = "res://assets/quaternius/materials/MI_Regular_Male.tres"
+const MATERIAL_SKIN_FEMALE: String = "res://assets/quaternius/materials/MI_Regular_Female.tres"
+const MATERIAL_EYES: String = "res://assets/quaternius/materials/MI_Eyes.tres"
+const MATERIAL_HAIR: String = "res://assets/quaternius/materials/MI_Hair_1.tres"
 const PLAYER_SCENE: String = "res://addons/3d_player_controller/scenes/player.tscn"
 
 const VILLAGER_SCENE_DIR: String = "res://scenes/villagers"
@@ -600,9 +609,9 @@ func _build_npc_scene(persona: NPCPersona, scene_path: String) -> PackedScene:
 	# A villager is assembled from three sources: the outfit, a head, and hair. All are
 	# rigged to the same skeleton, so the parts are moved onto the outfit's one and the
 	# whole character animates as a single body.
-	_graft(npc, skeleton, HEADS.get(persona.feminine, HEADS[false]))
+	_graft(npc, skeleton, HEADS.get(persona.feminine, HEADS[false]), persona)
 	for hair: String in persona.hair:
-		_graft(npc, skeleton, "%s/%s.gltf" % [HAIR_DIR, hair])
+		_graft(npc, skeleton, "%s/%s.gltf" % [HAIR_DIR, hair], persona)
 
 	var modifier: SkeletonModifier3D = SkeletonModifier3D.new()
 	modifier.set_script(load("res://scripts/npc/speaking_modifier.gd"))
@@ -664,7 +673,9 @@ func _build_npc_scene(persona: NPCPersona, scene_path: String) -> PackedScene:
 ## This works because the packs share one skeleton and Godot imports skins by bone name:
 ## a skin that names `head` binds to whichever skeleton it ends up under, rather than to
 ## the joint that happened to sit at that index in the file it came from.
-func _graft(owner_node: Node, skeleton: Skeleton3D, path: String) -> void:
+func _graft(
+	owner_node: Node, skeleton: Skeleton3D, path: String, persona: NPCPersona
+) -> void:
 	var scene: PackedScene = load(path)
 	if scene == null:
 		push_warning("Missing character part: %s" % path)
@@ -683,7 +694,44 @@ func _graft(owner_node: Node, skeleton: Skeleton3D, path: String) -> void:
 		mesh.owner = owner_node
 		mesh.skeleton = NodePath("..")
 		mesh.transform = Transform3D.IDENTITY
+		# Marked so the outfit part filter leaves it alone. A head, eyes and hair are
+		# not outfit pieces, and hiding everything that does not match the outfit's name
+		# prefix would hide them: the villagers came out headless.
+		mesh.add_to_group("grafted", true)
+		_apply_character_material(mesh, persona)
 	donor.queue_free()
+
+
+## Puts the right one of Quaternius's own materials on a grafted mesh.
+##
+## The head, eye and hair meshes arrive with nothing useful on them, and the pack's
+## materials are where the look actually lives: the hair shader tints a greyscale texture
+## by a `Hair_Color` parameter, so a hair mesh without it is a white mass rather than
+## hair. Each villager gets their own copy of the hair material so that colour can differ
+## between them.
+func _apply_character_material(mesh: MeshInstance3D, persona: NPCPersona) -> void:
+	if mesh.mesh == null:
+		return
+	var mesh_name: String = mesh.name
+	var material: Material = null
+
+	if mesh_name.containsn("eye") and not mesh_name.containsn("brow"):
+		material = load(MATERIAL_EYES)
+	elif mesh_name.containsn("hair") or mesh_name.containsn("brow"):
+		# Eyebrows use the hair shader, so they take the hair colour with it.
+		var hair: ShaderMaterial = load(MATERIAL_HAIR)
+		if hair != null:
+			var tinted: ShaderMaterial = hair.duplicate()
+			tinted.set_shader_parameter("Hair_Color", persona.hair_color)
+			material = tinted
+	else:
+		material = load(MATERIAL_SKIN_FEMALE if persona.feminine else MATERIAL_SKIN_MALE)
+
+	if material == null:
+		push_warning("No material for %s" % mesh_name)
+		return
+	for surface: int in mesh.mesh.get_surface_count():
+		mesh.set_surface_override_material(surface, material)
 
 
 ## `pixel_size` is metres per font pixel, so at font size 64 a label stands

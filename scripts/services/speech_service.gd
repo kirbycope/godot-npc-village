@@ -96,6 +96,16 @@ func _drain() -> void:
 		_frames.append_array(_capture.get_buffer(available))
 
 
+## Picks up a key that arrived after startup, and opens the microphone bus if this is the
+## first time a key has been present.
+func rearm() -> void:
+	if RuntimeMode.is_offline():
+		return
+	_available = Secrets.has_key("elevenlabs")
+	if _available and _capture == null:
+		_prepare_bus()
+
+
 ## Whether the microphone can be used at all.
 func is_available() -> bool:
 	return _available and enabled and _capture != null

@@ -167,6 +167,12 @@ func _build_world() -> bool:
 	world.add_child(hud)
 	hud.owner = world
 
+	var keys: CanvasLayer = CanvasLayer.new()
+	keys.name = "KeyPrompt"
+	keys.set_script(load("res://scripts/ui/key_prompt.gd"))
+	world.add_child(keys)
+	keys.owner = world
+
 	_add_player(world)
 	_add_player_voice(world)
 

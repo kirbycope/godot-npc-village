@@ -37,6 +37,13 @@ const MODEL: String = "claude-opus-5"
 ## interchangeable; pairing one with the other is a 400.
 const FALLBACK_BETA: String = "server-side-fallback-2026-07-01"
 
+## Required to call the Claude API from a browser at all; without it the request is
+## refused. Anthropic names it "dangerous" deliberately: anything the page can read, so
+## can whoever is looking at the page. That is acceptable only because a web build asks
+## the player for their own key and never ships one, which is a different arrangement
+## from embedding a key somebody else pays for.
+const BROWSER_ACCESS_HEADER: String = "anthropic-dangerous-direct-browser-access: true"
+
 ## `low` effort is the point of this whole design: village small talk does not need
 ## deep reasoning, and the latency saved is latency the player would otherwise spend
 ## watching two villagers stand in silence.
@@ -162,6 +169,13 @@ func _ready() -> void:
 		)
 
 
+## Picks up a key that arrived after startup, as the web build's prompt does.
+func rearm() -> void:
+	if RuntimeMode.is_offline():
+		return
+	_enabled = Secrets.has_key("anthropic")
+
+
 ## Whether the director can actually reach the API.
 func is_available() -> bool:
 	return _enabled
@@ -200,6 +214,8 @@ func request_beat(
 		"anthropic-version: %s" % API_VERSION,
 		"anthropic-beta: %s" % FALLBACK_BETA,
 	])
+	if OS.has_feature("web"):
+		headers.append(BROWSER_ACCESS_HEADER)
 	var body: String = JSON.stringify(_build_body(personas, situation, history))
 	var error: Error = request.request(ENDPOINT, headers, HTTPClient.METHOD_POST, body)
 	if error != OK:

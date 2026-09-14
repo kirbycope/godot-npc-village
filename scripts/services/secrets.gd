@@ -47,6 +47,30 @@ func has_key(service: String) -> bool:
 	return not get_key(service).is_empty()
 
 
+## Sets a key at run time, as the web build's prompt does.
+##
+## `remember` writes it to `user://secrets.cfg`, which on the web is this origin's own
+## browser storage: it stays on the player's machine and is sent nowhere but the API it
+## belongs to. An empty value clears the key instead of storing a blank one.
+func set_key(service: String, key: String, remember: bool = false) -> void:
+	var trimmed: String = key.strip_edges()
+	if trimmed.is_empty():
+		_values.erase(service)
+	else:
+		_values[service] = trimmed
+	_is_loaded = true
+
+	if not remember:
+		return
+	var config: ConfigFile = ConfigFile.new()
+	config.load("user://secrets.cfg")
+	if trimmed.is_empty():
+		config.erase_section_key("api_keys", service)
+	else:
+		config.set_value("api_keys", service, trimmed)
+	config.save("user://secrets.cfg")
+
+
 ## Re-runs the search. Useful after the player edits `user://secrets.cfg` in game.
 func reload() -> void:
 	_values.clear()

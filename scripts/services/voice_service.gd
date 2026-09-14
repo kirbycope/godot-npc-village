@@ -136,6 +136,16 @@ func _ready() -> void:
 	_fetch_quota()
 
 
+## Picks up a key that arrived after startup, as the web build's prompt does. Without
+## this the player types their key in and nothing happens until they reload.
+func rearm() -> void:
+	if RuntimeMode.is_offline():
+		return
+	_available = Secrets.has_key("elevenlabs")
+	if _available:
+		_fetch_quota()
+
+
 ## Whether a key is present, this interaction has budget left, and the account has quota.
 func is_available() -> bool:
 	return (

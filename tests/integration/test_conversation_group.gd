@@ -128,6 +128,60 @@ func test_a_failed_beat_with_no_fallback_stays_quiet() -> void:
 	assert_false(_group.is_performing())
 
 
+## A beat where one villager is given more lines than their allowance.
+func _greedy_beat() -> Array[ConversationTurn]:
+	var turns: Array[ConversationTurn] = []
+	for i: int in 5:
+		turns.append(ConversationTurn.new(&"baker", "Line %d." % i, &"neutral", &"none"))
+	return turns
+
+
+func test_a_villager_may_only_speak_twice_per_interaction() -> void:
+	# The cost control. Without it a group standing next to the player talks
+	# indefinitely, and every line is a request to write it and characters to speak it.
+	_group.begin_interaction()
+	ConversationDirector.beat_ready.emit(&"test_group", _greedy_beat())
+	await wait_frames(2)
+	# Let the beat run itself out; each line falls back to its estimated duration here,
+	# because none of them are in the voice cache.
+	await wait_seconds(6.0)
+
+	var spoken: int = 0
+	for turn: ConversationTurn in _group.transcript():
+		if turn.speaker == &"baker":
+			spoken += 1
+	assert_eq(spoken, _group.max_turns_per_villager, "the baker should be cut off at two")
+
+
+func test_speaking_to_them_gives_the_allowance_back() -> void:
+	_group.begin_interaction()
+	ConversationDirector.beat_ready.emit(&"test_group", _greedy_beat())
+	await wait_frames(2)
+	await wait_seconds(6.0)
+	var before: int = _group.transcript().size()
+
+	# A direct question always earns an answer, whatever was said a moment ago. Refusing
+	# to reply because of an internal budget reads as the game being broken.
+	_group.hear_player("Maud, what did she buy?", _baker)
+	await wait_frames(2)
+	assert_true(
+		_group._may_speak(&"baker"),
+		"being spoken to should give the villager their lines back",
+	)
+	assert_gt(_group.transcript().size(), before, "the player's line joins the transcript")
+
+
+func test_arriving_gives_the_allowance_back() -> void:
+	_group.begin_interaction()
+	ConversationDirector.beat_ready.emit(&"test_group", _greedy_beat())
+	await wait_frames(2)
+	await wait_seconds(6.0)
+	assert_false(_group._may_speak(&"baker"), "the baker should be spent")
+
+	_group.begin_interaction()
+	assert_true(_group._may_speak(&"baker"), "walking up again should reset them")
+
+
 func test_the_villagers_turn_to_face_whoever_is_speaking() -> void:
 	ConversationDirector.beat_ready.emit(&"test_group", _beat())
 	await wait_frames(2)

@@ -59,10 +59,10 @@ func _load() -> void:
 	var from_env: Dictionary[String, String] = _read_env_file()
 	for service: String in ALIASES:
 		var names: Array = ALIASES[service]
-		for name: String in names:
-			var value: String = OS.get_environment(name)
+		for alias: String in names:
+			var value: String = OS.get_environment(alias)
 			if value.is_empty():
-				value = from_env.get(name, "")
+				value = from_env.get(alias, "")
 			if not value.is_empty():
 				_values[service] = value
 				break
@@ -91,15 +91,15 @@ func _read_env_file() -> Dictionary[String, String]:
 				if line.is_empty() or line.begins_with("#") or not line.contains("="):
 					continue
 				var split: int = line.find("=")
-				var name: String = line.substr(0, split).strip_edges()
+				var key: String = line.substr(0, split).strip_edges()
 				var value: String = line.substr(split + 1).strip_edges()
 				if value.length() >= 2 and (
 					(value.begins_with("\"") and value.ends_with("\""))
 					or (value.begins_with("'") and value.ends_with("'"))
 				):
 					value = value.substr(1, value.length() - 2)
-				if not name.is_empty():
-					pairs[name] = value
+				if not key.is_empty():
+					pairs[key] = value
 			file.close()
 			break
 		var parent: String = dir.get_base_dir()

@@ -72,6 +72,18 @@ signal turn_started(npc: NPC, turn: ConversationTurn)
 ## `converse_only_when_player_present` is off.
 @export_range(0.0, 900.0, 5.0) var unattended_cooldown: float = 240.0
 
+## How many lines each villager may speak in one interaction.
+##
+## An interaction starts when the player walks up and again every time they speak, and
+## when every villager present has used their allowance the group falls quiet until one
+## of those happens. Without it a group left standing next to the player talks
+## indefinitely, and every line is a request to write it and characters to speak it: one
+## unattended run spent a session's whole voice budget on conversation nobody asked for.
+##
+## Two is enough for an exchange to land and short enough that the village stays a place
+## you visit rather than a radio left on.
+@export_range(1, 10, 1) var max_turns_per_villager: int = 2
+
 ## Start talking as soon as the scene loads. Ignored while
 ## `converse_only_when_player_present` is on, since arrival is what starts a beat then.
 @export var autostart: bool = true
@@ -97,6 +109,9 @@ var _player_line: String = ""
 
 ## The villager the player was nearest to when they said it.
 var _addressed: StringName = &""
+
+## Lines spoken by each villager since this interaction began.
+var _turns_taken: Dictionary[StringName, int] = {}
 
 
 func _ready() -> void:
@@ -145,6 +160,7 @@ func _on_player_area_body_entered(body: Node3D) -> void:
 		return
 	_player_present = true
 	_face_player(body)
+	begin_interaction()
 	_restart_for_changed_situation()
 
 
@@ -176,6 +192,10 @@ func _request_beat() -> void:
 		return
 	if converse_only_when_player_present and not _player_present and _player_line.is_empty():
 		return
+	if not _anyone_may_speak():
+		# Everyone here has said their piece. Nothing more is written or spoken until the
+		# player says something or walks away and comes back.
+		return
 	var personas: Array[NPCPersona] = []
 	for npc: NPC in npcs:
 		if is_instance_valid(npc) and npc.persona != null:
@@ -198,11 +218,34 @@ func hear_player(line: String, addressed: NPC) -> void:
 	if spoken.is_empty():
 		return
 	_transcript.append(ConversationTurn.new(&"player", spoken))
+	# Being spoken to always earns a fresh hearing, even from a villager who had used
+	# up their allowance a moment ago. Refusing to answer a direct question because of
+	# an internal budget reads as the game being broken.
+	begin_interaction()
 	_player_line = spoken
 	_addressed = addressed.persona_id() if is_instance_valid(addressed) else &""
 	interrupt()
 	_cooldown_timer.stop()
 	_cooldown_timer.start(0.15)
+
+
+## Gives every villager here their lines back. Called when the player arrives and every
+## time they speak.
+func begin_interaction() -> void:
+	_turns_taken.clear()
+
+
+## Whether `id` has anything left to say in this interaction.
+func _may_speak(id: StringName) -> bool:
+	return _turns_taken.get(id, 0) < max_turns_per_villager
+
+
+## Whether anyone here still has a line left.
+func _anyone_may_speak() -> bool:
+	for npc: NPC in npcs:
+		if is_instance_valid(npc) and _may_speak(npc.persona_id()):
+			return true
+	return false
 
 
 ## What the director needs to know about this moment. Time and weather are read from
@@ -341,6 +384,11 @@ func _advance() -> void:
 			return
 
 	var turn: ConversationTurn = _pending.pop_front()
+	if not _may_speak(turn.speaker):
+		# This villager has used their allowance. Drop the turn rather than the whole
+		# beat: someone else in it may still have something to say.
+		_advance()
+		return
 	var npc: NPC = _find_npc(turn.speaker)
 	if npc == null:
 		# The model named someone who is not here. Skip the turn rather than stall.
@@ -352,10 +400,12 @@ func _advance() -> void:
 		prefetch_at_turns_remaining > 0
 		and _pending.size() <= prefetch_at_turns_remaining
 		and _prefetched.is_empty()
+		and _anyone_may_speak()
 	):
 		_request_beat()
 
 	_transcript.append(turn)
+	_turns_taken[turn.speaker] = _turns_taken.get(turn.speaker, 0) + 1
 	_speaker = npc
 	_point_listeners_at(npc)
 	turn_started.emit(npc, turn)

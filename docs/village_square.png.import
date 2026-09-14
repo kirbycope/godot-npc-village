@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://cd7fsjn3rvcg0"
-path="res://.godot/imported/T_RockTrim_Normal.png-c4d23a679cf42c9cf4a23c456046014a.ctex"
+uid="uid://cnyed22urdfqa"
+path="res://.godot/imported/village_square.png-fc3214015b67dbd2dd4bd039787daa3f.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/quaternius/village/T_RockTrim_Normal.png"
-dest_files=["res://.godot/imported/T_RockTrim_Normal.png-c4d23a679cf42c9cf4a23c456046014a.ctex"]
+source_file="res://docs/village_square.png"
+dest_files=["res://.godot/imported/village_square.png-fc3214015b67dbd2dd4bd039787daa3f.ctex"]
 
 [params]
 
@@ -22,12 +22,12 @@ compress/lossy_quality=0.7
 compress/uastc_level=0
 compress/rdo_quality_loss=0.0
 compress/hdr_compression=1
-compress/normal_map=1
+compress/normal_map=0
 compress/channel_pack=0
 mipmaps/generate=false
 mipmaps/limit=-1
-roughness/mode=1
-roughness/src_normal="res://assets/quaternius/village/T_RockTrim_Normal.png"
+roughness/mode=0
+roughness/src_normal=""
 process/channel_remap/red=0
 process/channel_remap/green=1
 process/channel_remap/blue=2

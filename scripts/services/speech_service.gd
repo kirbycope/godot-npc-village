@@ -47,11 +47,24 @@ const TIMEOUT_SECONDS: float = 25.0
 ## Set false to disable the microphone without removing the key.
 @export var enabled: bool = true
 
+## Seconds of microphone the capture effect will hold before it starts discarding.
+##
+## The default is a tenth of a second. Reading the buffer only when the key comes up
+## therefore threw away all but the last fraction of whatever was said, which arrived at
+## the transcriber as a click and came back as an empty string, indistinguishable from
+## the player having stayed silent. The buffer is widened here and, more importantly,
+## drained every frame into [member _frames] so nothing is lost however long the key is
+## held.
+const CAPTURE_BUFFER_SECONDS: float = 2.0
+
 var _capture: AudioEffectCapture
 var _microphone: AudioStreamPlayer
 var _listening: bool = false
 var _started_at: float = 0.0
 var _available: bool = false
+
+## Everything captured since the key went down.
+var _frames: PackedVector2Array = PackedVector2Array()
 
 
 func _ready() -> void:
@@ -66,8 +79,21 @@ func _ready() -> void:
 
 
 func _process(_delta: float) -> void:
-	if _listening and Time.get_ticks_msec() * 0.001 - _started_at > max_seconds:
+	if not _listening:
+		return
+	_drain()
+	if Time.get_ticks_msec() * 0.001 - _started_at > max_seconds:
 		stop_listening()
+
+
+## Moves whatever the capture effect is holding into the recording. Called every frame
+## while listening, because the effect's buffer is small and overwrites itself.
+func _drain() -> void:
+	if _capture == null:
+		return
+	var available: int = _capture.get_frames_available()
+	if available > 0:
+		_frames.append_array(_capture.get_buffer(available))
 
 
 ## Whether the microphone can be used at all.
@@ -84,6 +110,7 @@ func is_listening() -> bool:
 func start_listening() -> void:
 	if not is_available() or _listening:
 		return
+	_frames.clear()
 	_capture.clear_buffer()
 	if _microphone != null and not _microphone.playing:
 		_microphone.play()
@@ -100,14 +127,38 @@ func stop_listening() -> void:
 	var seconds: float = Time.get_ticks_msec() * 0.001 - _started_at
 	listening_stopped.emit(seconds)
 
-	var frames: PackedVector2Array = _capture.get_buffer(_capture.get_frames_available())
+	_drain()
+	var frames: PackedVector2Array = _frames.duplicate()
+	_frames.clear()
 	if _microphone != null and _microphone.playing:
 		_microphone.stop()
 
 	if seconds < min_seconds or frames.is_empty():
 		transcription_failed.emit("too short")
 		return
+
+	# Silence here almost always means the operating system is not letting the game
+	# hear anything, which otherwise surfaces as a transcript of nothing and looks like
+	# the player never spoke. Saying so is far more use than reporting an empty result.
+	var peak: float = _peak(frames)
+	print("[SpeechService] %.2fs captured, %d frames, peak %.3f" % [
+		seconds, frames.size(), peak,
+	])
+	if peak < 0.002:
+		transcription_failed.emit(
+			"the microphone returned silence: check that this application is allowed to "
+			+ "use the microphone in the system's privacy settings"
+		)
+		return
 	_transcribe(_encode_wav(frames))
+
+
+## The loudest sample in the recording, used only to tell silence from speech.
+func _peak(frames: PackedVector2Array) -> float:
+	var peak: float = 0.0
+	for frame: Vector2 in frames:
+		peak = maxf(peak, maxf(absf(frame.x), absf(frame.y)))
+	return peak
 
 
 ## Finds the record bus and hangs a microphone on it.
@@ -127,6 +178,7 @@ func _prepare_bus() -> void:
 	if _capture == null:
 		push_warning("[SpeechService] The '%s' bus has no AudioEffectCapture." % BUS_NAME)
 		return
+	_capture.buffer_length = CAPTURE_BUFFER_SECONDS
 
 	_microphone = AudioStreamPlayer.new()
 	_microphone.name = "Microphone"

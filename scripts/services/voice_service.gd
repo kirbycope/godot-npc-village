@@ -65,11 +65,14 @@ const TIMEOUT_SECONDS: float = 20.0
 
 ## Characters this session may synthesize before the service refuses.
 ##
-## Deliberately small. A free ElevenLabs account gets 10,000 characters a month and a
-## spoken line runs 50 to 100 of them, so this is roughly ten conversations: enough to
-## play with, low enough that leaving the game running cannot cost the month. Raise it
-## once the account has a plan behind it.
-@export var session_character_ceiling: int = 900
+## A free ElevenLabs account gets 10,000 characters a month and a spoken line runs 50 to
+## 100 of them, so this is roughly twenty conversations in one sitting.
+##
+## This used to be the only brake and had to be tight enough to hurt. The real control is
+## now `ConversationGroup.max_turns_per_villager`, which stops a group after two lines
+## each until the player speaks or walks away and comes back; this is the backstop behind
+## it rather than the thing that shapes play, so it can afford to be looser.
+@export var session_character_ceiling: int = 2000
 
 ## Set false to silence the villagers without removing the key.
 @export var enabled: bool = true

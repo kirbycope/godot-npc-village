@@ -72,6 +72,22 @@ that line; it came from the two facts his persona holds about the rider.
 The subtitle bar shows what was heard before the reply arrives, which matters because a
 transcription can be wrong and the player needs to see that it was.
 
+### How much they will say
+
+Each villager speaks at most **two lines per interaction**
+(`ConversationGroup.max_turns_per_villager`). An interaction begins when you walk up and
+again every time you speak, and when everyone present has used their allowance the group
+falls quiet until one of those happens.
+
+This is the real cost control. A group left standing next to the player otherwise talks
+indefinitely, and every line costs a request to write it and characters to speak it.
+Being spoken to always earns a fresh hearing, whatever a villager said a moment before:
+refusing to answer a direct question because of an internal budget reads as the game
+being broken.
+
+`VoiceService.session_character_ceiling` is the backstop behind it rather than the thing
+that shapes play.
+
 ## The voice bank
 
 `assets/voice/` holds spoken lines as ordinary mp3 files, committed to the repository
@@ -139,7 +155,7 @@ voices, and `test_npc_persona.gd` fails the build if anyone is given a blocked o
 
 ## Tests
 
-The suite is 74 tests and runs entirely from recorded fixtures and committed clips. It never makes a network
+The suite is 77 tests and runs entirely from recorded fixtures and committed clips. It never makes a network
 request, so it costs nothing and works in CI with no credentials. This is enforced rather
 than assumed: `RuntimeMode.is_offline()` detects GUT's runner on the command line and both
 paid services refuse to send anything when it returns true.

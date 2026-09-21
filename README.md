@@ -351,19 +351,9 @@ genuinely should shrink with distance.
   by design. Whether Godot's web export can open a microphone at all is therefore
   untested and moot.
 
-## Third-party assets
+## Assets
 
-All assets are CC0 or MIT and are attributed below.
-
-| Asset | Source | License |
-| --- | --- | --- |
-| Medieval Village MegaKit | <https://quaternius.com> | CC0 1.0 |
-| Stylized Nature MegaKit | <https://quaternius.com> | CC0 1.0, via the WeatherFX addon |
-| Universal Base Characters | <https://quaternius.com> | CC0 1.0 |
-| Modular Character Outfits: Fantasy | <https://quaternius.com> | CC0 1.0 |
-| Universal Animation Library 1 and 2 | <https://quaternius.com> | CC0 1.0 |
-
-The packs live in `assets/quaternius/`, each with the `License.txt` from its download.
+Third-party assets are credited in [CREDITS.md](CREDITS.md).
 
 **Only the files the village actually uses are committed.** The packs are large and mostly
 irrelevant to this village: the Medieval Village MegaKit alone ships 305 models, of which

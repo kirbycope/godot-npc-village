@@ -133,13 +133,16 @@ def main() -> int:
             print(f"{'':<28} {subject[:70]}")
 
         if not args.dry_run:
-            lock[name] = {
-                "repo": addon["repo"],
-                "ref": addon["ref"],
-                "commit": commit,
-                "subject": subject,
-                "pulled": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
-            }
+            # Rewritten only when the commit moves: a pull that changes nothing leaves the lock alone,
+            # so a clone is not left dirty by a fresh timestamp.
+            if lock.get(name, {}).get("commit") != commit:
+                lock[name] = {
+                    "repo": addon["repo"],
+                    "ref": addon["ref"],
+                    "commit": commit,
+                    "subject": subject,
+                    "pulled": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+                }
 
     print()
 

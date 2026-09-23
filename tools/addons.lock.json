@@ -1,37 +1,37 @@
 {
   "3d_player_controller": {
-    "commit": "8a56ebe377ab903c73efc854b0d1def8981ec376",
-    "pulled": "2026-09-13T22:23:17Z",
+    "commit": "5ddd3fab2d5bde72e161a2b82b82e281f297c2fb",
+    "pulled": "2026-09-23T21:31:26Z",
     "ref": "main",
     "repo": "https://github.com/kirbycope/godot-3d-player-controller-addon.git",
-    "subject": "Hide the chat window until it is wanted, and guard the blend position setter\n\nchat.gd gains start_visible, off by default: a chat box is not wanted on\nscreen in a single player scene until something is said. Hiding it needed\nthree changes rather than one, because open_input bailed out when the window\nwas not visible so the chat action would have done nothing forever, an\narriving message would have been written into an invisible box, and the pause\nhandler set visible = not paused so the window reappeared the first time a\nmenu was opened and closed. It now opens a hidden window, shows itself when a\nmessage arrives, and remembers what it was before a menu rather than\nunhiding.\n\nplayer.gd checks is_inside_tree before is_multiplayer_authority in the\nsync_blend_position setter. The authority call asserts the node is in the tree\nand an exported property is assigned while the scene is still being built, so\nevery single load logged the failed assertion."
+    "subject": "Server derives thrown-item damage, flashlight state reaches late joiners, tests leave no orphans"
   },
   "controls": {
-    "commit": "e2a0835fbfd2c47f7d76e5ee395cda32cf40c019",
-    "pulled": "2026-09-13T22:23:19Z",
+    "commit": "b9ada80d697b9e7284f7d743f91b0c957837da83",
+    "pulled": "2026-09-23T21:31:34Z",
     "ref": "main",
     "repo": "https://github.com/kirbycope/godot-controls.git",
-    "subject": "README: the HUD keeps its size under a UI scale and is hidden with visible"
+    "subject": "Pull guard diffs against the commit this machine mirrored, not the moved lock"
   },
   "date_and_time": {
-    "commit": "a7cf4a647029df53c7723a6d0571b3a03ddfce35",
-    "pulled": "2026-09-13T22:23:27Z",
+    "commit": "a4acb7f8e3ab6e0408c71357c95de567641eb1d6",
+    "pulled": "2026-09-23T21:31:49Z",
     "ref": "main",
     "repo": "https://github.com/kirbycope/date-and-time.git",
-    "subject": "ci: point the tests at the gutconfig where it now lives"
+    "subject": "Pull guard diffs against the commit this machine mirrored, not the moved lock"
   },
   "gut": {
     "commit": "c80954f47bed74a0a2c471d472c0389f98e0a8f6",
-    "pulled": "2026-09-13T23:09:49Z",
+    "pulled": "2026-09-23T21:31:52Z",
     "ref": "v9.6.1",
     "repo": "https://github.com/bitwes/Gut.git",
     "subject": "Version bump and documentation for 9.6.1 release (#848)"
   },
   "weather_fx": {
-    "commit": "322b54f383ac59b58b80f1cf19d9d37397452634",
-    "pulled": "2026-09-13T22:23:26Z",
+    "commit": "2f3ff9fb4890ba9b5cf04e098e639fd07b9c5c70",
+    "pulled": "2026-09-23T21:31:47Z",
     "ref": "main",
     "repo": "https://github.com/kirbycope/weather-fx.git",
-    "subject": "Show the clouds in the pink sky, with wind and leaves"
+    "subject": "Pull guard diffs against the commit this machine mirrored, not the moved lock"
   }
 }
